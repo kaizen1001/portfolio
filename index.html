@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundBoard Pro | Master Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-main: #050507;
+            --bg-panel: rgba(15, 15, 20, 0.85);
+            --bg-pad: linear-gradient(145deg, #13141c, #0a0b0e);
+            --border-color: rgba(212, 175, 55, 0.15);
+            --brand-gold: #D4AF37;
+            --brand-gold-glow: rgba(212, 175, 55, 0.5);
+            --brand-cyan: #00E5FF;
+            --brand-cyan-glow: rgba(0, 229, 255, 0.4);
+            --brand-red: #FF3366;
+            --brand-green: #00FF88;
+            --brand-orange: #FF9900;
+            --text-main: #F4F4F5;
+            --text-muted: #8A8D98;
+            --glass-blur: blur(20px);
+        }
+
+        * { box-sizing: border-box; font-family: 'Montserrat', sans-serif; user-select: none; scrollbar-width: thin; scrollbar-color: var(--brand-gold) transparent; }
+        body { margin: 0; padding: 15px; background-color: var(--bg-main); background-image: radial-gradient(circle at 50% 0%, #1a1a24, #050507 80%); color: var(--text-main); display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+
+        /* --- ĐÁNH DẤU TRACK ĐÃ SỬ DỤNG --- */
+        .channel-pad.used-track { opacity: 0.6; filter: grayscale(0.5); }
+        .channel-pad.used-track .channel-title { text-decoration: line-through; color: var(--text-muted); }
+        .tracklist-item.used-track { opacity: 0.5; }
+        .tracklist-item.used-track .tl-name { text-decoration: line-through; color: var(--text-muted); }
+
+        /* --- LICENSE ACTIVATION MODAL --- */
+        #license-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(5, 5, 7, 0.95); backdrop-filter: blur(30px); z-index: 10000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;
+        }
+        .license-box {
+            background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 30px; width: 420px; display: flex; flex-direction: column; gap: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9); text-align: center;
+        }
+        .license-box h2 { color: var(--brand-gold); margin: 0; font-size: 20px; letter-spacing: 2px; }
+        .license-box p { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin: 0; }
+        .machine-id-badge { background: #000; padding: 8px; border-radius: 6px; font-family: 'JetBrains Mono'; font-size: 10px; color: var(--brand-cyan); border: 1px solid rgba(0,229,255,0.2); word-break: break-all; }
+        .license-input { background: #0a0b0e; border: 1px solid var(--border-color); color: #fff; padding: 12px; border-radius: 8px; font-family: 'JetBrains Mono'; font-size: 13px; text-align: center; outline: none; letter-spacing: 1px; }
+        .license-input:focus { border-color: var(--brand-gold); box-shadow: 0 0 15px var(--brand-gold-glow); }
+        .btn-activate { background: linear-gradient(145deg, var(--brand-gold), #b39024); color: #000; font-weight: 900; padding: 12px; border: none; border-radius: 8px; cursor: pointer; letter-spacing: 2px; transition: 0.3s; }
+        .btn-activate:hover { transform: scale(1.02); box-shadow: 0 0 20px var(--brand-gold); }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #050507; z-index: 9999; display: none; flex-direction: column;
+            justify-content: center; align-items: center; gap: 20px; transition: opacity 0.5s ease;
+        }
+        .splash-logo { font-size: 32px; font-weight: 800; letter-spacing: 4px; color: #fff; text-transform: uppercase; }
+        .splash-logo span { color: var(--brand-gold); }
+        .splash-loader { width: 300px; height: 4px; background: #1a1a24; border-radius: 2px; overflow: hidden; border: 1px solid var(--border-color); }
+        .splash-bar { width: 0%; height: 100%; background: var(--brand-gold); box-shadow: 0 0 15px var(--brand-gold); transition: width 0.1s linear; }
+        .splash-status { font-size: 11px; font-family: 'JetBrains Mono'; color: var(--text-muted); letter-spacing: 2px; }
+
+        /* --- TOAST NOTIFICATION CONTAINER --- */
+        #toast-container { position: fixed; bottom: 25px; right: 25px; z-index: 9998; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: rgba(15, 15, 20, 0.95); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); padding: 12px 20px; border-radius: 10px; color: #fff; font-size: 12px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 10px; pointer-events: auto; animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; max-width: 350px; }
+        .toast.success { border-left: 4px solid var(--brand-green); } .toast.error { border-left: 4px solid var(--brand-red); } .toast.info { border-left: 4px solid var(--brand-cyan); } .toast.warning-alert { border-left: 4px solid var(--brand-red); background: rgba(255, 51, 102, 0.15); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+        /* --- MAIN APP CONTAINER --- */
+        .main-app { flex: 1; max-width: 1750px; display: flex; flex-direction: column; gap: 12px; height: 100%; }
+
+        /* --- TOP CONTROL BAR --- */
+        .top-bar { width: 100%; background: var(--bg-panel); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); border-radius: 16px; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.6); flex-wrap: wrap; gap: 12px; }
+        .brand-title { font-size: 18px; font-weight: 800; letter-spacing: 2px; display: flex; flex-direction: column; color: #fff; text-transform: uppercase; }
+        .brand-title span { font-size: 9px; font-weight: 600; color: var(--brand-gold); margin-top: 2px; letter-spacing: 3px;}
+        .master-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .control-group { display: flex; align-items: center; gap: 5px; }
+        .control-group label { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; }
+
+        .meter-group { display: flex; align-items: center; gap: 8px; background: #000; padding: 4px 10px; border-radius: 10px; border: 1px solid var(--border-color); }
+        canvas.visualizer-top { width: 100px; height: 24px; border-radius: 4px; background: #08080a; border: 1px solid rgba(212, 175, 55, 0.2); box-shadow: inset 0 0 8px rgba(0,0,0,0.8); }
+        .vu-meter { display: flex; gap: 2px; height: 24px; align-items: center; }
+        .vu-led { width: 3px; height: 100%; background: #222; border-radius: 2px; transition: background 0.05s, box-shadow 0.05s; }
+
+        .device-info-badge, select.device-info-badge { font-size: 9px; font-family: 'JetBrains Mono'; color: var(--brand-cyan); background: rgba(0,229,255,0.1); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(0,229,255,0.2); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; outline: none; -webkit-appearance: none; }
+        select.device-info-badge option { background: #0f0f14; color: var(--brand-cyan); font-weight: bold; }
+        .deck-selector-container { display: flex; align-items: center; gap: 5px; border-left: 1px solid #333; padding-left: 8px; }
+        .deck-selector-container select { background: #15161c; color: var(--brand-gold); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 6px; font-weight: 700; font-size: 11px; cursor: pointer; outline: none; }
+
+        .btn-top { background: linear-gradient(180deg, #2a2c35, #15161c); border: 1px solid var(--border-color); color: var(--brand-gold); padding: 7px 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 10px; letter-spacing: 1px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .btn-top:hover { background: var(--brand-gold); color: #000; box-shadow: 0 0 15px var(--brand-gold-glow); border-color: var(--brand-gold); }
+        .btn-rec { background: linear-gradient(180deg, #2a2c35, #15161c); border: 1px solid rgba(255, 51, 102, 0.3); color: var(--brand-red); padding: 7px 10px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 10px; letter-spacing: 1px; transition: 0.3s; }
+        .btn-rec.recording { background: var(--brand-red); color: #fff; box-shadow: 0 0 20px rgba(255,51,102,0.6); animation: pulseRec 1s infinite; }
+        @keyframes pulseRec { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .switch { position: relative; display: inline-block; width: 30px; height: 16px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #1a1a24; border: 1px solid var(--border-color); transition: .4s; border-radius: 20px; }
+        .slider-toggle:before { position: absolute; content: ""; height: 10px; width: 10px; left: 2px; bottom: 2px; background-color: var(--text-muted); transition: .4s; border-radius: 50%; }
+        input:checked + .slider-toggle { background-color: rgba(212, 175, 55, 0.2); border-color: var(--brand-gold); box-shadow: inset 0 0 5px var(--brand-gold-glow); }
+        input:checked + .slider-toggle:before { transform: translateX(14px); background-color: var(--brand-gold); box-shadow: 0 0 10px var(--brand-gold); }
+        
+        .master-vol-container { background: #000; padding: 4px 8px; border-radius: 16px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 6px;}
+        .master-vol-container input[type=range] { width: 60px; }
+
+        /* --- SOUND FX INSTANT PANEL --- */
+        .fx-panel { width: 100%; background: linear-gradient(90deg, var(--bg-panel), rgba(212, 175, 55, 0.05)); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px 15px; display: flex; align-items: center; gap: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); flex-wrap: wrap; }
+        .fx-label { font-size: 11px; font-weight: 800; color: var(--brand-gold); letter-spacing: 2px; display: flex; align-items: center; gap: 6px;}
+        .fx-label::before { content: ''; display: block; width: 7px; height: 7px; background: var(--brand-gold); border-radius: 50%; box-shadow: 0 0 8px var(--brand-gold);}
+        .fx-buttons { display: flex; gap: 8px; flex: 1; justify-content: flex-start; flex-wrap: wrap;}
+        .btn-fx { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: 0.3s; }
+        .btn-fx:hover { background: var(--brand-gold); color: #000; border-color: var(--brand-gold); box-shadow: 0 0 15px var(--brand-gold-glow); }
+
+        /* --- WORKSPACE CONTAINER & WATERMARK --- */
+        .workspace { display: flex; gap: 12px; flex: 1; overflow: hidden; width: 100%; position: relative; }
+        .workspace::before {
+            content: 'KIM TUẤN AN - EXCLUSIVE'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg); font-size: 8vw; font-weight: 900;
+            color: rgba(255, 255, 255, 0.03); pointer-events: none; z-index: 0; white-space: nowrap;
+        }
+
+        /* --- GRID PADS --- */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; flex: 1; overflow-y: auto; padding-right: 4px; padding-bottom: 20px; align-content: start; position: relative; z-index: 1; }
+
+        .channel-pad { background: var(--bg-pad); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1); z-index: 2; }
+        .channel-pad.drag-over { border-color: var(--brand-gold); box-shadow: 0 0 25px var(--brand-gold-glow); transform: scale(1.02); }
+        .channel-pad.active { border-color: var(--pad-color, var(--brand-cyan)); background: linear-gradient(145deg, #13141c, #0a0b0e), rgba(0, 229, 255, 0.05); box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 15px var(--pad-color, var(--brand-cyan-glow)); }
+        .channel-pad.muted { opacity: 0.4; filter: grayscale(1); }
+        .channel-pad.soloed { border-color: var(--brand-gold); box-shadow: 0 0 20px var(--brand-gold-glow); }
+
+        @keyframes endWarningFlash {
+            0% { border-color: var(--brand-red); box-shadow: 0 0 25px var(--brand-red), inset 0 0 15px rgba(255, 51, 102, 0.5); background: rgba(255, 51, 102, 0.1); }
+            50% { border-color: #333; box-shadow: none; background: var(--bg-pad); }
+            100% { border-color: var(--brand-red); box-shadow: 0 0 25px var(--brand-red), inset 0 0 15px rgba(255, 51, 102, 0.5); background: rgba(255, 51, 102, 0.1); }
+        }
+        .channel-pad.warning-40 { animation: endWarningFlash 1.5s infinite !important; }
+        .channel-pad.warning-20 { animation: endWarningFlash 1s infinite !important; }
+        .channel-pad.warning-10 { animation: endWarningFlash 0.5s infinite !important; }
+
+        .pad-header { display: flex; justify-content: space-between; align-items: center; }
+        .channel-title { font-weight: 800; font-size: 11px; cursor: text; letter-spacing: 1px; border-bottom: 1px dashed transparent; transition: 0.2s; color: #fff; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .channel-title:hover { border-bottom: 1px dashed var(--brand-gold); color: var(--brand-gold); }
+        .pad-tools { display: flex; align-items: center; gap: 5px; }
+        .color-picker-btn { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #2a2c35; cursor: pointer; background: var(--brand-cyan); padding: 0; outline: none; appearance: none; }
+        .color-picker-btn::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker-btn::-webkit-color-swatch { border: none; border-radius: 50%; }
+        .hotkey-badge { background: #000; padding: 2px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; border: 1px solid var(--border-color); color: var(--brand-gold); cursor: pointer; }
+        
+        .btn-mark-used { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); width: 16px; height: 16px; border-radius: 50%; font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }
+        .btn-mark-used:hover { border-color: var(--brand-gold); color: var(--brand-gold); }
+        .channel-pad.used-track .btn-mark-used { background: var(--brand-gold); color: #000; border-color: var(--brand-gold); }
+
+        .file-wrapper { position: relative; background: rgba(0,0,0,0.4); border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px; padding: 6px; text-align: center; cursor: pointer; transition: 0.3s; z-index: 3; pointer-events: auto; }
+        .file-wrapper:hover { border-color: var(--brand-gold); background: rgba(212, 175, 55, 0.05); }
+        .file-wrapper input[type=file] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 4; }
+        .file-name { font-size: 9px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; pointer-events: none; }
+
+        .time-display { display: flex; justify-content: space-between; font-size: 9px; color: #a1a1aa; font-family: 'JetBrains Mono', monospace; margin-bottom: 2px; font-weight: 700;}
+        .time-display .text-danger { color: var(--brand-red); font-weight: bold; }
+        .progress-container { width: 100%; height: 5px; background: #000; border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; position: relative; transition: height 0.1s; }
+        .progress-container:hover { height: 8px; }
+        .progress-bar { height: 100%; background: var(--pad-color, var(--brand-cyan)); width: 0%; pointer-events: none; }
+
+        .main-controls { display: flex; gap: 5px; margin-top: 1px;}
+        .btn { flex: 1; padding: 7px; border: none; border-radius: 6px; font-weight: 800; font-size: 10px; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: 0.3s; color: #fff; text-transform: uppercase; }
+        .btn-play { background: rgba(0,0,0,0.5); border: 1px solid var(--pad-color, var(--brand-cyan)); color: var(--pad-color, var(--brand-cyan)); }
+        .btn-play:hover, .btn-play.is-playing { background: var(--pad-color, var(--brand-cyan)); color: #000; box-shadow: 0 0 15px var(--pad-color, var(--brand-cyan-glow)); }
+        .btn-stop { background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 51, 102, 0.5); color: var(--brand-red); }
+        .btn-stop:hover { background: var(--brand-red); color: #fff; }
+
+        .bottom-controls { display: flex; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02);}
+        .mixer-toggles { display: flex; gap: 3px; align-items: center; }
+        .btn-sub { background: #0a0b0e; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 3px 0; border-radius: 4px; cursor: pointer; font-size: 8px; font-weight: 700; flex: 1; transition: 0.3s; text-align: center; }
+        .btn-sub:hover { border-color: rgba(255,255,255,0.3); color: #fff;}
+        .btn-sub.active-cue { background: var(--brand-orange); color: #000; border-color: var(--brand-orange); font-weight: 800; }
+        .btn-sub.active-mute { background: var(--brand-red); color: #fff; border-color: var(--brand-red); }
+        .btn-sub.active-solo { background: var(--brand-gold); color: #000; border-color: var(--brand-gold); }
+        .btn-sub.active-loop { color: var(--brand-cyan); border-color: var(--brand-cyan); }
+        .btn-sub.active-autonext { color: var(--brand-green); border-color: var(--brand-green); }
+        
+        .next-selector { background: #000; color: var(--brand-green); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; font-size: 8px; padding: 2px; max-width: 65px; outline: none; font-weight: 700; cursor: pointer; }
+
+        .vol-slider-group { display: flex; align-items: center; gap: 5px; }
+        .vol-icon { font-size: 8px; color: var(--brand-gold); font-weight: 800; letter-spacing: 1px; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 12px; outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 3px; background: #222; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 10px; width: 8px; border-radius: 2px; background: var(--pad-color, var(--brand-cyan)); margin-top: -3.5px; cursor: pointer; }
+
+        .manual-fades { display: flex; gap: 4px; }
+        .btn-fade { flex: 1; background: #000; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 3px; border-radius: 4px; font-size: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-fade:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: var(--brand-gold); }
+
+        /* --- SIDEBAR (TRACKLIST & SESSION LOG) --- */
+        .sidebar-container { width: 340px; display: flex; flex-direction: column; gap: 10px; z-index: 1; }
+        .sidebar-panel { background: var(--bg-panel); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); flex: 1; overflow: hidden; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; color: var(--brand-gold); letter-spacing: 1px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;}
+        .sidebar-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        
+        .tracklist-item { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 6px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: 0.2s; cursor: pointer; }
+        .tracklist-item:hover { border-color: var(--brand-gold); background: rgba(212, 175, 55, 0.05); }
+        .tracklist-item.playing { border-color: var(--brand-cyan); box-shadow: 0 0 10px rgba(0,229,255,0.2); }
+        .tl-info { display: flex; flex-direction: column; gap: 2px; overflow: hidden; flex: 1; }
+        .tl-name { font-size: 10px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: 0.2s;}
+        .tl-meta { font-size: 8px; font-family: 'JetBrains Mono'; color: var(--text-muted); display: flex; gap: 6px; }
+        .tl-actions { display: flex; align-items: center; gap: 4px; }
+        .tl-btn { background: #1a1a24; border: 1px solid var(--border-color); color: #fff; width: 22px; height: 22px; border-radius: 4px; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .tl-btn:hover { background: var(--brand-cyan); color: #000; border-color: var(--brand-cyan); }
+
+        .log-box { height: 130px; background: #050507; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow-y: auto; padding: 8px; font-family: 'JetBrains Mono'; font-size: 9px; color: var(--brand-green); line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div id="license-screen">
+        <div class="license-box">
+            <h2>KÍCH HOẠT BẢN QUYỀN</h2>
+            <p>Phần mềm độc quyền bởi <b>KIM TUẤN AN</b>.<br>Vui lòng nhập Key bản quyền được cấp để mở khóa phần mềm:</p>
+            <div class="machine-id-badge" id="display-machine-id">Mã định danh máy: Đang tạo...</div>
+            <input type="text" class="license-input" id="input-license-key" placeholder="NHẬP MÃ KEY (VD: KTA-PRO-8888-VN)">
+            <button class="btn-activate" onclick="activateLicense()">XÁC THỰC KÍCH HOẠT</button>
+            <button onclick="localStorage.clear(); location.reload();" style="background: #111; color: var(--brand-red); border: 1px solid rgba(255,51,102,0.3); padding: 6px; border-radius: 6px; cursor: pointer; font-size: 9px; margin-top: 5px;">⚡ XÓA MÁY & RESET TEST</button>
+        </div>
+    </div>
+
+    <div id="splash-screen">
+        <div class="splash-logo">SoundBoard <span>by KIM TUẤN AN</span></div>
+        <div style="color: var(--brand-gold); font-size: 11px; margin-top: 10px; letter-spacing: 3px;">© 2026 COPYRIGHT - DO NOT REUPLOAD</div>
+        <div class="splash-loader"><div class="splash-bar" id="splash-bar"></div></div>
+        <div class="splash-status" id="splash-status">Khởi tạo dữ liệu Audio... 0%</div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div class="main-app">
+        <div class="top-bar">
+            <div class="brand-title">
+                SoundBoard <span>Pro</span>
+                <span style="font-size: 8px; color: var(--brand-gold); margin-top: 4px; font-family: 'JetBrains Mono'; letter-spacing: 1px;">DEVELOPED & MIXED BY KIM TUẤN AN</span>
+            </div>
+            
+            <div class="master-controls">
+                <div class="meter-group">
+                    <canvas id="vis-top" class="visualizer-top"></canvas>
+                    <div class="vu-meter" id="vu-meter"></div>
+                    <select class="device-info-badge" id="audio-output-select" title="Loa chính (Main Out)" onchange="changeAudioOutput(this.value)">
+                        <option value="default">Main: Default</option>
+                    </select>
+                    <select class="device-info-badge" id="audio-cue-select" title="Tai nghe (Cue / PFL Output)" style="border-color: rgba(212,175,55,0.4); color: var(--brand-gold);" onchange="changeCueOutput(this.value)">
+                        <option value="default">Cue: Default</option>
+                    </select>
+                    <div class="deck-selector-container">
+                        <label style="font-size: 9px; color: var(--brand-gold); font-weight: 700;">DECKS:</label>
+                        <select id="deck-count" onchange="changeDeckCount(this.value)">
+                            <option value="6">6</option>
+                            <option value="9" selected>9</option>
+                            <option value="12">12</option>
+                            <option value="16">16</option>
+                            <option value="18">18</option>
+                            <option value="20">20</option>
+                            <option value="22">22</option>
+                            <option value="34">34</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-group" title="Chỉnh Fade (giây)">
+                    <label>FADE(s)</label>
+                    <input type="number" id="input-fade-sec" value="2" min="0" max="10" step="0.5" style="width: 42px; background: #000; border: 1px solid var(--border-color); color: var(--brand-gold); border-radius: 4px; font-family: 'JetBrains Mono'; font-size: 10px; text-align: center; padding: 3px;" title="Thời gian mờ dần khi đổi bài">
+                </div>
+
+                <div class="control-group" title="Khóa chỉnh sửa">
+                    <label>LOCK</label>
+                    <label class="switch"><input type="checkbox" id="toggle-lock" onchange="appendLog('Trạng thái LOCK chỉnh sửa: ' + (this.checked ? 'Bật' : 'Tắt'))"><span class="slider-toggle"></span></label>
+                </div>
+
+                <div class="control-group" title="Chống đè nhạc">
+                    <label>EXCLUS</label>
+                    <label class="switch"><input type="checkbox" id="toggle-exclusive" onchange="appendLog('Trạng thái Exclusive (Chống đè): ' + (this.checked ? 'Bật' : 'Tắt'))"><span class="slider-toggle"></span></label>
+                </div>
+
+                <div class="master-vol-container">
+                    <label style="font-size: 9px; font-weight: 700; color: var(--brand-gold);">MASTER</label>
+                    <input type="range" id="master-volume" min="0" max="2" step="0.01" value="1" title="Hỗ trợ Gain khuếch đại lớn lên đến 200%">
+                    <span id="master-vol-val" style="font-family: 'JetBrains Mono'; font-size: 10px; width: 32px; text-align: right; color: #fff;">100%</span>
+                </div>
+
+                <button class="btn-top" onclick="saveProject()">💾 LƯU</button>
+                <button class="btn-rec" id="btn-rec" onclick="toggleRecording()">⏺ REC</button>
+            </div>
+        </div>
+
+        <div class="fx-panel">
+            <div class="fx-label">STUDIO FX LIVE:</div>
+            <div class="fx-buttons">
+                <button class="btn-fx" onclick="playApplauseFX()">👏 Tiếng Vỗ Tay (Applause)</button>
+                <button class="btn-fx" onclick="playCrowdLaughFX()">😂 Khán Giả Cười (Laugh)</button>
+                <button class="btn-fx" onclick="playAirHornFX()">📯 Kèn Air Horn</button>
+                <button class="btn-fx" onclick="playDrumRollFX()">🥁 Trống Hồi Hộp (Drum Roll)</button>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="grid-container" id="deck-grid"></div>
+            
+            <div class="sidebar-container">
+                <div class="sidebar-panel" style="flex: 1.5;">
+                    <div class="sidebar-header">
+                        <span>📋 PLAYLIST TRACKLIST</span>
+                        <span id="tracklist-count" style="font-family:'JetBrains Mono'; font-size:10px; color:var(--text-muted);">0 tracks</span>
+                    </div>
+                    <div class="sidebar-body" id="tracklist-body">
+                        <div style="text-align: center; color: var(--text-muted); font-size: 11px; margin-top: 20px;">
+                            Chưa có track nào. Kéo thả file hoặc load nhạc vào deck.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-panel" style="flex: 1;">
+                    <div class="sidebar-header">
+                        <span>📜 SYSTEM ACTIVITY LOG</span>
+                        <button onclick="clearLog()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:9px;">XÓA LOG</button>
+                    </div>
+                    <div class="sidebar-body">
+                        <div id="session-log-box" class="log-box">[System] Hệ thống khởi tạo thành công.<br></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getMachineId() {
+            let mId = localStorage.getItem('SoundBoard_machine_id');
+            if (!mId) {
+                mId = 'KTA-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                localStorage.setItem('SoundBoard_machine_id', mId);
+            }
+            return mId;
+        }
+
+        document.getElementById('display-machine-id').innerText = "Mã định danh máy: " + getMachineId();
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const isActivated = localStorage.getItem('SoundBoard_activated');
+            if (isActivated === 'true') {
+                document.getElementById('license-screen').style.display = 'none';
+                startSplashSequence();
+            }
+        });
+
+        async function activateLicense() {
+            const inputKey = document.getElementById('input-license-key').value.trim().toUpperCase();
+            if (!inputKey) return showToast("Vui lòng nhập mã Key bản quyền!", "error");
+            const machineId = getMachineId();
+
+            try {
+                showToast("Đang kết nối đến server xác thực...", "info");
+                const response = await fetch('http://localhost/license-server/verify.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: inputKey, machine_id: machineId })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    localStorage.setItem('SoundBoard_activated', 'true');
+                    showToast(result.message, "success");
+                    document.getElementById('license-screen').style.display = 'none';
+                    startSplashSequence();
+                    appendLog("Xác thực bản quyền thành công với Key: " + inputKey);
+                } else {
+                    showToast(result.message, "error");
+                    appendLog("Lỗi xác thực bản quyền: " + result.message);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("Không thể kết nối đến server XAMPP!", "error");
+                appendLog("Lỗi: Không kết nối được tới server XAMPP localhost.");
+            }
+        }
+
+        function appendLog(msg) {
+            const box = document.getElementById('session-log-box');
+            const timeStr = new Date().toLocaleTimeString();
+            box.innerHTML += `[${timeStr}] ${msg}<br>`;
+            box.scrollTop = box.scrollHeight;
+        }
+        function clearLog() {
+            document.getElementById('session-log-box').innerHTML = "[System] Đã làm mới nhật ký.<br>";
+        }
+
+        function startSplashSequence() {
+            const splashScreen = document.getElementById('splash-screen');
+            splashScreen.style.display = 'flex';
+            let loadProgress = 0;
+            const splashBar = document.getElementById('splash-bar');
+            const splashStatus = document.getElementById('splash-status');
+
+            const loadingInterval = setInterval(() => {
+                loadProgress += 1; 
+                if(loadProgress >= 100) {
+                    loadProgress = 100;
+                    clearInterval(loadingInterval);
+                    splashStatus.innerText = "Hệ thống sẵn sàng!";
+                    setTimeout(() => {
+                        splashScreen.style.opacity = '0';
+                        setTimeout(() => {
+                            splashScreen.remove();
+                            if ('speechSynthesis' in window) {
+                                let msg = new SpeechSynthesisUtterance("Chào mừng bạn đến với Sound Board, phần mềm điều chỉnh âm thanh sự kiện được phát triển bởi Kim Tuấn An. Lưu ý Key bản quyền chỉ được kích hoạt trên 1 thiết bị "); 
+                                msg.lang = 'vi-VN'; msg.rate = 0.9;
+                                window.speechSynthesis.speak(msg);
+                            }
+                        }, 500);
+                        showToast("SoundBoard Pro sẵn sàng hoạt động!", "success");
+                        appendLog("Mở khóa ứng dụng thành công. Sẵn sàng trộn nhạc.");
+                        initAudioContext();
+                    }, 400);
+                } else {
+                    splashStatus.innerText = `Khởi tạo dữ liệu Audio... ${loadProgress}%`;
+                }
+                splashBar.style.width = loadProgress + '%';
+            }, 50);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning-alert' ? '🚨' : 'ℹ️'));
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            // Nếu là cảnh báo sắp hết bài thì giữ lâu hơn chút (4 giây) cho dễ nhìn
+            let duration = type === 'warning-alert' ? 4000 : 3000;
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        const MAX_CHANNELS = 34;
+        let activeChannels = 9; 
+        const channels = {};
+        let masterVolume = 1.0;
+        let audioCtx, analyserL, analyserR, destStreamNode, mediaRecorder, recordedChunks = [];
+        const leds = [];
+        const vuMeter = document.getElementById('vu-meter');
+        const canvasTop = document.getElementById('vis-top');
+        const ctxTop = canvasTop.getContext('2d');
+
+        for(let i=0; i<16; i++) {
+            let led = document.createElement('div');
+            led.className = 'vu-led'; vuMeter.appendChild(led); leds.push(led);
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return "00:00";
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        const grid = document.getElementById('deck-grid');
+        const defaultHotkeys = ['1','2','3','4','5','6','7','8','9','0','Q','W','E','R','T','Y','U','I','O','P','A','S','D','F','G','H','J','K','L','Z','X','C','V','B'];
+
+        for (let i = 1; i <= MAX_CHANNELS; i++) {
+            const defaultColors = ['#00E5FF', '#FF3366', '#D4AF37', '#00FF88', '#B026FF', '#FF9900'];
+            const startColor = defaultColors[(i-1) % defaultColors.length];
+            const defaultKey = defaultHotkeys[i-1] || '-';
+
+            channels[i] = {
+                id: i, name: `TRACK ${i < 10 ? '0'+i : i}`, audio: new Audio(), isPlaying: false,
+                isLooping: false, isAutoNext: false, isMuted: false, isSoloed: false, isCueing: false, color: startColor, hotkey: defaultKey,
+                fadeInterval: null, targetVolume: 1.0, sourceNode: null, gainNode: null, fileName: '',
+                warn40Triggered: false, warn20Triggered: false, warn10Triggered: false
+            };
+
+            const displayStyle = i <= activeChannels ? 'flex' : 'none';
+            
+            let nextOptions = '<option value="auto">AutoNext</option>';
+            for(let n=1; n<=MAX_CHANNELS; n++) {
+                if(n !== i) nextOptions += `<option value="${n}">Tới Track ${n}</option>`;
+            }
+
+            const padHtml = `
+                <div class="channel-pad" id="pad-${i}" style="--pad-color: ${startColor}; display: ${displayStyle};"
+                     ondragover="event.preventDefault(); this.classList.add('drag-over');"
+                     ondragleave="this.classList.remove('drag-over');"
+                     ondrop="event.preventDefault(); this.classList.remove('drag-over'); if(event.dataTransfer.files[0]) processAudioFile(${i}, event.dataTransfer.files[0]);">
+                    <div class="pad-header">
+                        <span class="channel-title" id="title-${i}" title="Đúp chuột đổi tên">TRACK ${i < 10 ? '0'+i : i}</span>
+                        <div class="pad-tools">
+                            <input type="color" class="color-picker-btn" id="color-${i}" value="${startColor}" title="Đổi màu Pad" onchange="changePadColor(${i}, this.value)">
+                            <button class="btn-mark-used" onclick="toggleMarkUsed(${i})" title="Đánh dấu đã sử dụng bài này">✔</button>
+                            <span class="hotkey-badge" id="badge-key-${i}" title="Đổi Hotkey" onclick="changeHotkey(${i})">${defaultKey}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="file-wrapper" id="file-wrapper-${i}">
+                        <input type="file" accept="audio/*" id="file-input-${i}" onchange="loadFile(${i}, this)">
+                        <div class="file-name" id="filename-${i}">↓ KÉO THẢ AUDIO</div>
+                    </div>
+
+                    <div>
+                        <div class="time-display">
+                            <span id="time-current-${i}">00:00 (0%)</span>
+                            <span id="time-remain-${i}" class="text-remain">-00:00</span>
+                        </div>
+                        <div class="progress-container" id="progress-container-${i}" onclick="seekTrack(${i}, event)">
+                            <div class="progress-bar" id="progress-${i}"></div>
+                        </div>
+                    </div>
+
+                    <div class="main-controls">
+                        <button class="btn btn-play" id="btn-play-${i}" onclick="handlePlayPause(${i})">▶ PLAY</button>
+                        <button class="btn btn-stop" onclick="handleStop(${i})">■ STOP</button>
+                    </div>
+
+                    <div class="bottom-controls">
+                        <div class="mixer-toggles">
+                            <button class="btn-sub" id="btn-cue-${i}" onclick="toggleCue(${i})" title="Nghe trước (Cue/PFL)">CUE</button>
+                            <button class="btn-sub" id="btn-mute-${i}" onclick="toggleMute(${i})">MUTE</button>
+                            <button class="btn-sub" id="btn-solo-${i}" onclick="toggleSolo(${i})">SOLO</button>
+                            <button class="btn-sub" id="btn-loop-${i}" onclick="toggleLoop(${i})">🔁 LOOP</button>
+                            <button class="btn-sub" id="btn-autonext-${i}" onclick="toggleAutoNext(${i})">NEXT</button>
+                            <select class="next-selector" id="next-target-${i}" title="Chọn track sẽ next">
+                                ${nextOptions}
+                            </select>
+                        </div>
+                        <div class="vol-slider-group">
+                            <span class="vol-icon">VOL</span>
+                            <input type="range" id="vol-${i}" min="0" max="1" step="0.01" value="1" oninput="changeVolume(${i}, this.value)">
+                            <span id="vol-val-${i}" style="font-family:'JetBrains Mono'; font-size:9px; width:30px; text-align:right; color:#fff;">100%</span>
+                        </div>
+                        <div class="manual-fades">
+                            <button class="btn-fade" onclick="executeFade(${i}, 'in')">Fade In</button>
+                            <button class="btn-fade" onclick="executeFade(${i}, 'out', true)">Fade Out</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.innerHTML += padHtml;
+
+            const audio = channels[i].audio;
+            audio.addEventListener('timeupdate', () => {
+                if (audio.duration) {
+                    const percent = (audio.currentTime / audio.duration) * 100;
+                    document.getElementById(`progress-${i}`).style.width = percent + '%';
+                    document.getElementById(`time-current-${i}`).innerText = `${formatTime(audio.currentTime)} (${Math.round(percent)}%)`;
+                    
+                    const remain = audio.duration - audio.currentTime;
+                    const remainEl = document.getElementById(`time-remain-${i}`);
+                    remainEl.innerText = "-" + formatTime(remain);
+
+                    const padEl = document.getElementById(`pad-${i}`);
+                    let roundedRemain = Math.round(remain);
+
+                    if (roundedRemain === 40 && !channels[i].warn40Triggered && !channels[i].isLooping) {
+                        channels[i].warn40Triggered = true;
+                        padEl.classList.add('warning-40');
+                        showToast(`⚠️ [Track ${i}] Còn 40 giây nữa hết bài!`, "info");
+                    } else if (roundedRemain === 20 && !channels[i].warn20Triggered && !channels[i].isLooping) {
+                        channels[i].warn20Triggered = true;
+                        padEl.classList.remove('warning-40');
+                        padEl.classList.add('warning-20');
+                    } else if (roundedRemain === 10 && !channels[i].warn10Triggered && !channels[i].isLooping) {
+                        channels[i].warn10Triggered = true;
+                        padEl.classList.remove('warning-20');
+                        padEl.classList.add('warning-10');
+                        showToast(`🚨 Track ${i} (${channels[i].name}) còn 10 giây nữa hết bài!`, "warning-alert");
+                        appendLog(`Cảnh báo: Track ${i} (${channels[i].name}) sắp kết thúc (10s).`);
+                    }
+
+                    if (remain <= 1 && remain > 0) {
+                        padEl.classList.remove('warning-10', 'warning-20', 'warning-40');
+                        remainEl.classList.add('text-danger');
+                    } else {
+                        remainEl.classList.remove('text-danger');
+                    }
+                }
+            });
+
+            audio.addEventListener('loadedmetadata', () => {
+                document.getElementById(`time-remain-${i}`).innerText = "-" + formatTime(audio.duration);
+                updateTracklist();
+            });
+
+            audio.addEventListener('ended', () => {
+                const ch = channels[i];
+                ch.warn40Triggered = false; ch.warn20Triggered = false; ch.warn10Triggered = false;
+                document.getElementById(`pad-${i}`).classList.remove('warning-10', 'warning-20', 'warning-40');
+                appendLog(`Track ${i} (${ch.name}) đã phát xong.`);
+                
+                if (!ch.isLooping) {
+                    forceStopUI(i);
+                    if (ch.isAutoNext) triggerAutoNext(i);
+                }
+                updateTracklist();
+            });
+        }
+        
+        function toggleMarkUsed(id) {
+            const pad = document.getElementById(`pad-${id}`);
+            pad.classList.toggle('used-track');
+            const isUsed = pad.classList.contains('used-track');
+            showToast(`Track ${id} ${isUsed ? 'đã được đánh dấu xài' : 'bỏ đánh dấu'}`, "info");
+            appendLog(`Track ${id} (${channels[id].name}) ${isUsed ? 'đã đánh dấu SỬ DỤNG' : 'bỏ đánh dấu'}.`);
+            updateTracklist();
+        }
+
+        function triggerAutoNext(currentIndex) {
+            let targetVal = document.getElementById(`next-target-${currentIndex}`).value;
+            let nextIndex;
+            
+            if (targetVal !== "auto") {
+                nextIndex = parseInt(targetVal);
+                if (channels[nextIndex] && channels[nextIndex].audio.src) {
+                    showToast(`🔄 Auto-Next: Chuyển sang Track ${nextIndex}`, "success");
+                    appendLog(`Auto-Next kích hoạt: Phát chuyển chỉ định sang Track ${nextIndex} (${channels[nextIndex].name}).`);
+                    handlePlayPause(nextIndex);
+                    return;
+                }
+            }
+            
+            nextIndex = currentIndex + 1;
+            if (nextIndex > activeChannels) nextIndex = 1;
+            let checkedCount = 0;
+            while (checkedCount < activeChannels) {
+                if (channels[nextIndex].audio.src) {
+                    showToast(`🔄 Auto-Next: Chuyển sang Track ${nextIndex}`, "success");
+                    appendLog(`Auto-Next kích hoạt: Tự động chuyển phát sang Track ${nextIndex} (${channels[nextIndex].name}).`);
+                    handlePlayPause(nextIndex);
+                    break;
+                }
+                nextIndex++;
+                if (nextIndex > activeChannels) nextIndex = 1;
+                checkedCount++;
+            }
+        }
+
+        function seekTrack(id, event) {
+            if(document.getElementById('toggle-lock').checked) return showToast("Đang khóa, không thể tua!", "error");
+            const ch = channels[id];
+            if (!ch.audio.src || !ch.audio.duration || isNaN(ch.audio.duration)) return;
+            const container = document.getElementById(`progress-container-${id}`);
+            const rect = container.getBoundingClientRect();
+            let percent = (event.clientX - rect.left) / rect.width;
+            if (percent < 0) percent = 0; if (percent > 1) percent = 1;
+            ch.audio.currentTime = percent * ch.audio.duration;
+            appendLog(`Tua nhạc Track ${id} đến vị trí ${Math.round(percent * 100)}%.`);
+        }
+
+        function changeVolume(id, value) {
+            channels[id].targetVolume = parseFloat(value);
+            document.getElementById(`vol-val-${id}`).innerText = Math.round(value * 100) + '%';
+            applyChannelVolumes();
+        }
+
+        document.getElementById('master-volume').addEventListener('input', (e) => {
+            masterVolume = parseFloat(e.target.value);
+            document.getElementById('master-vol-val').innerText = Math.round(masterVolume * 100) + '%';
+            applyChannelVolumes();
+            appendLog(`Điều chỉnh Master Volume: ${Math.round(masterVolume * 100)}%`);
+        });
+
+        function changeHotkey(id) {
+            if(document.getElementById('toggle-lock').checked) return;
+            const newKey = prompt(`Nhập phím tắt mới (Track ${id}):`, channels[id].hotkey);
+            if(newKey !== null && newKey.trim() !== '') {
+                channels[id].hotkey = newKey.trim().toUpperCase();
+                document.getElementById(`badge-key-${id}`).innerText = channels[id].hotkey;
+                appendLog(`Đổi phím tắt Track ${id} thành [${channels[id].hotkey}]`);
+            }
+        }
+
+        function processAudioFile(id, file) {
+            if(!file.type.startsWith('audio/')) return showToast("Chỉ chấp nhận file audio!", "error");
+            channels[id].audio.src = URL.createObjectURL(file);
+            channels[id].fileName = file.name;
+            document.getElementById(`filename-${id}`).innerText = file.name;
+            if(channels[id].name.startsWith('TRACK')) {
+                channels[id].name = file.name.replace(/\.[^/.]+$/, "").substring(0, 15).toUpperCase();
+                document.getElementById(`title-${id}`).innerText = channels[id].name;
+            }
+            showToast(`Đã nạp: ${file.name}`, "success");
+            appendLog(`Nạp file audio thành công vào Track ${id}: ${file.name}`);
+            updateTracklist();
+        }
+
+        function loadFile(id, input) {
+            if(document.getElementById('toggle-lock').checked) return showToast("Đang khóa chỉnh sửa!", "error");
+            if (input.files[0]) processAudioFile(id, input.files[0]);
+        }
+
+        function updateTracklist() {
+            const body = document.getElementById('tracklist-body');
+            let html = ''; let countLoaded = 0;
+            for(let i=1; i<=activeChannels; i++) {
+                const ch = channels[i];
+                if(ch.audio.src) {
+                    countLoaded++;
+                    const isUsed = document.getElementById(`pad-${i}`).classList.contains('used-track');
+                    html += `<div class="tracklist-item ${ch.isPlaying ? 'playing' : ''} ${isUsed ? 'used-track' : ''}" onclick="handlePlayPause(${i})">
+                        <div class="tl-info"><span class="tl-name">#${i} - ${ch.name}</span><span class="tl-meta">Key: [${ch.hotkey}]</span></div>
+                        <div class="tl-actions"><button class="tl-btn" onclick="event.stopPropagation(); handlePlayPause(${i});">${ch.isPlaying ? '⏸' : '▶'}</button></div>
+                    </div>`;
+                }
+            }
+            document.getElementById('tracklist-count').innerText = `${countLoaded} loaded`;
+            body.innerHTML = countLoaded === 0 ? `<div style="text-align:center; color:var(--text-muted); font-size:11px; margin-top:20px;">Chưa có track nào được nạp.</div>` : html;
+        }
+
+        function changeDeckCount(count) {
+            activeChannels = parseInt(count);
+            for(let i=1; i<=MAX_CHANNELS; i++) document.getElementById(`pad-${i}`).style.display = i <= activeChannels ? 'flex' : 'none';
+            updateTracklist(); 
+            showToast(`Hiển thị ${activeChannels} Decks`, "info");
+            appendLog(`Thay đổi bàn mixer: Hiển thị ${activeChannels} Decks.`);
+        }
+
+        async function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyserL = audioCtx.createAnalyser(); analyserL.fftSize = 64; analyserL.smoothingTimeConstant = 0.85; 
+                analyserR = audioCtx.createAnalyser(); analyserR.fftSize = 64;
+                const splitter = audioCtx.createChannelSplitter(2);
+                splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
+                destStreamNode = audioCtx.createMediaStreamDestination();
+                for(let i=1; i<=MAX_CHANNELS; i++) {
+                    channels[i].sourceNode = audioCtx.createMediaElementSource(channels[i].audio);
+                    channels[i].gainNode = audioCtx.createGain();
+                    channels[i].sourceNode.connect(channels[i].gainNode);
+                    channels[i].gainNode.connect(audioCtx.destination);
+                    channels[i].gainNode.connect(splitter);
+                    channels[i].gainNode.connect(destStreamNode);
+                }
+                drawVisualizer(); updateVUMeter(); updateAudioOutputs();
+                appendLog("Audio Context & Analyser đã khởi chạy thành công.");
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        async function updateAudioOutputs() {
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                if (audioOutputs.length > 0) {
+                    const mainSel = document.getElementById('audio-output-select');
+                    const cueSel = document.getElementById('audio-cue-select');
+                    mainSel.innerHTML = '<option value="default">Main: Default</option>';
+                    cueSel.innerHTML = '<option value="default">Cue: Default</option>';
+                    audioOutputs.forEach((device, index) => {
+                        const opt1 = document.createElement('option'); opt1.value = device.deviceId; opt1.text = device.label || `Output ${index + 1}`;
+                        const opt2 = opt1.cloneNode(true);
+                        mainSel.appendChild(opt1); cueSel.appendChild(opt2);
+                    });
+                }
+            }
+        }
+
+        async function changeAudioOutput(deviceId) {
+            initAudioContext();
+            if (typeof audioCtx.setSinkId === 'function') await audioCtx.setSinkId(deviceId);
+            appendLog("Chuyển thiết bị phát Main Out thành công.");
+        }
+
+        async function changeCueOutput(deviceId) {
+            initAudioContext();
+            showToast("Đã chọn thiết bị nghe trước (Cue/PFL)", "success");
+            appendLog("Chuyển thiết bị Cue/PFL thành công.");
+        }
+
+        <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kim Tuấn An | Executive Event Director Portfolio</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* ==========================================================================
+           1. ROOT VARIABLES (HỆ THỐNG MÀU SẮC GIAO DIỆN TỐI - MẶC ĐỊNH)
+           ========================================================================== */
+        :root {
+            --bg-deep: #020203;
+            --bg-surface: #09090b;
+            --bg-surface-elevated: #121217;
+            --accent-cyan: #00f0ff;
+            --accent-blue: #0072ff;
+            --text-pure: #ffffff;
+            --text-normal: #d4d4d8;
+            --text-muted: #71717a;
+            --border-thin: rgba(255, 255, 255, 0.05);
+            --border-glow: rgba(0, 240, 255, 0.15);
+            
+            /* Footer tương phản: Nền sáng / Chữ tối */
+            --footer-bg: #f4f4f5;
+            --footer-text-main: #09090b;
+            --footer-text-desc: #52525b;
+            --footer-border: #e4e4e7;
+            --footer-social-bg: #e4e4e7;
+
+            --font-display: 'Playfair Display', serif;
+            --font-sans: 'Plus Jakarta Sans', sans-serif;
+            --transition-smooth: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* HỆ THỐNG MÀU SẮC GIAO DIỆN SÁNG (LIGHT THEME OVERRIDE) */
+        body.light-theme {
+            --bg-deep: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-surface-elevated: #f1f5f9;
+            --accent-cyan: #0066ff; 
+            --accent-blue: #0052cc;
+            --text-pure: #0f172a;
+            --text-normal: #334155;
+            --text-muted: #64748b;
+            --border-thin: rgba(0, 0, 0, 0.08);
+            --border-glow: rgba(0, 102, 255, 0.15);
+
+            /* Footer tương phản: Nền tối / Chữ sáng */
+            --footer-bg: #09090b;
+            --footer-text-main: #ffffff;
+            --footer-text-desc: #a1a1aa;
+            --footer-border: #27272a;
+            --footer-social-bg: #27272a;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-normal);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 50px; }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); }
+            50% { box-shadow: 0 0 30px rgba(0, 240, 255, 0.3); }
+            100% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); }
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes toastIn {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .glow-text { color: var(--text-pure); }
+        body:not(.light-theme) .glow-text { text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+
+        /* ==========================================================================
+           2. NÚT CHUYỂN ĐỔI GIAO DIỆN & NAVIGATION
+           ========================================================================== */
+        .theme-toggle-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-thin);
+            color: var(--text-pure);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2000;
+            transition: var(--transition-smooth);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .theme-toggle-btn:hover {
+            background: var(--accent-cyan);
+            color: #fff;
+            transform: translateY(-5px);
+            border-color: var(--accent-cyan);
+        }
+
+        header.nav-header {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            z-index: 1000;
+            background: rgba(2, 2, 3, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-thin);
+            transition: var(--transition-smooth);
+        }
+        body.light-theme header.nav-header { background: rgba(248, 250, 252, 0.8); }
+
+        header.nav-header.scrolled { padding: 15px 0; background: rgba(9, 9, 11, 0.95); }
+        body.light-theme header.nav-header.scrolled { background: rgba(255, 255, 255, 0.95); }
+
+        .nav-container { display: flex; justify-content: space-between; align-items: center; padding: 25px 0; transition: var(--transition-smooth); }
+        .brand-logo { font-size: 1.2rem; font-weight: 800; letter-spacing: 3px; color: var(--text-pure); text-decoration: none; }
+        .brand-logo span { color: var(--accent-cyan); }
+        
+        .nav-menu { display: flex; gap: 35px; list-style: none; }
+        .nav-link { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; letter-spacing: 1px; transition: var(--transition-smooth); position: relative; padding: 5px 0; }
+        .nav-link:hover, .nav-link.active { color: var(--text-pure); }
+        .nav-link::after { content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 1px; background: var(--accent-cyan); transition: var(--transition-smooth); }
+        .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+        .nav-status { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.15); padding: 8px 20px; border-radius: 100px; color: var(--accent-cyan); font-weight: 600; letter-spacing: 0.5px; }
+        .nav-status-dot { width: 8px; height: 8px; background: var(--accent-cyan); border-radius: 50%; box-shadow: 0 0 10px var(--accent-cyan); }
+
+        /* ==========================================================================
+           3. HERO & METRICS INTERACTIVE 
+           ========================================================================== */
+        .hero-section { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding-top: 150px; position: relative; }
+        .hero-meta { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 6px; color: var(--accent-cyan); margin-bottom: 25px; font-weight: 700; display: block; }
+        
+        .hero-title { font-family: var(--font-display); font-size: clamp(3rem, 7.5vw, 6rem); font-weight: 700; line-height: 1.1; color: var(--text-pure); letter-spacing: -2px; margin-bottom: 35px; }
+        .hero-title i { font-family: var(--font-display); font-weight: 400; color: var(--text-muted); font-style: italic; }
+
+        .hero-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 60px; align-items: flex-end; }
+        .hero-vision p { font-size: 1.25rem; color: var(--text-normal); font-weight: 300; max-width: 680px; margin-bottom: 40px; }
+        
+        .interactive-cta { display: flex; gap: 20px; align-items: center; }
+        .btn-premium { display: inline-flex; align-items: center; gap: 12px; background: var(--text-pure); color: var(--bg-deep); padding: 18px 38px; border-radius: 100px; font-weight: 700; text-decoration: none; font-size: 0.95rem; transition: var(--transition-smooth); border: 1px solid var(--text-pure); }
+        .btn-premium:hover { background: var(--accent-cyan); border-color: var(--accent-cyan); color: #fff; box-shadow: 0 10px 30px rgba(0, 102, 255, 0.2); transform: translateY(-3px); }
+        .btn-secondary { display: inline-flex; align-items: center; gap: 12px; background: transparent; color: var(--text-pure); padding: 18px 38px; border-radius: 100px; font-weight: 600; text-decoration: none; font-size: 0.95rem; border: 1px solid var(--border-thin); transition: var(--transition-smooth); }
+        .btn-secondary:hover { background: var(--border-thin); }
+
+        .metrics-display { display: flex; flex-direction: column; gap: 30px; border-left: 1px solid var(--border-thin); padding-left: 40px; }
+        .metric-block { position: relative; }
+        .metric-num { font-family: var(--font-display); font-size: 3.5rem; font-weight: 700; color: var(--text-pure); line-height: 1; margin-bottom: 5px; }
+        .metric-num span { color: var(--accent-cyan); }
+        .metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; }
+
+        /* ==========================================================================
+           4. INFINITE MARQUEE
+           ========================================================================== */
+        .marquee-container { width: 100vw; margin-left: calc(-50vw + 50%); border-top: 1px solid var(--border-thin); border-bottom: 1px solid var(--border-thin); padding: 30px 0; overflow: hidden; display: flex; }
+        .marquee-wrapper { display: flex; white-space: nowrap; animation: marquee 25s linear infinite; }
+        .marquee-item { font-family: var(--font-display); font-size: 2.5rem; font-weight: 600; color: transparent; text-transform: uppercase; letter-spacing: 4px; padding: 0 40px; display: flex; align-items: center; gap: 20px; -webkit-text-stroke: 1px var(--text-muted); opacity: 0.5; }
+        .marquee-item span { color: var(--accent-cyan); -webkit-text-stroke: 0; opacity: 1; }
+
+        /* ==========================================================================
+           5. SECTION GENERICS
+           ========================================================================== */
+        section.section-wrapper { padding: 140px 0; border-bottom: 1px solid var(--border-thin); }
+        .section-header-premium { margin-bottom: 80px; position: relative; }
+        .section-num { font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); font-family: var(--font-sans); display: block; margin-bottom: 15px; letter-spacing: 2px; }
+        .section-headline { font-size: 2.8rem; font-weight: 800; color: var(--text-pure); letter-spacing: -1px; }
+        .section-headline span { font-family: var(--font-display); font-weight: 400; color: var(--text-muted); font-style: italic; }
+
+        /* ==========================================================================
+           6. BENTO GRID ARCHITECTURE
+           ========================================================================== */
+        .bento-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .bento-item { background: var(--bg-surface); border: 1px solid var(--border-thin); border-radius: 30px; padding: 45px; position: relative; overflow: hidden; transition: var(--transition-smooth); display: flex; flex-direction: column; justify-content: space-between; }
+        .bento-item:hover { background: var(--bg-surface-elevated); border-color: var(--accent-cyan); transform: translateY(-5px); }
+        
+        .bento-item.span-2 { grid-column: span 2; }
+        .bento-item.featured { background: linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-surface-elevated) 100%); border-color: var(--border-glow); animation: pulseGlow 6s infinite ease-in-out; }
+        
+        .bento-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-cyan); font-weight: 700; margin-bottom: 25px; display: block; }
+        .bento-title { font-size: 1.75rem; font-weight: 700; color: var(--text-pure); margin-bottom: 15px; letter-spacing: -0.5px; }
+        .bento-desc { color: var(--text-muted); font-size: 1.05rem; font-weight: 300; }
+        
+        .bento-footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: center; padding-top: 25px; border-top: 1px solid var(--border-thin); }
+        .bento-period { font-size: 0.85rem; color: var(--text-pure); font-weight: 600; }
+        .bento-icon { width: 45px; height: 45px; border-radius: 50%; background: var(--border-thin); border: 1px solid var(--border-thin); display: flex; align-items: center; justify-content: center; color: var(--text-pure); transition: var(--transition-smooth); }
+        .bento-item:hover .bento-icon { background: var(--accent-cyan); color: #fff; transform: rotate(45deg); border-color: var(--accent-cyan); }
+
+        .bento-list { list-style: none; margin-top: 15px; }
+        .bento-list li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; font-size: 0.95rem; color: var(--text-normal); }
+        .bento-list li i { color: var(--accent-cyan); font-size: 0.85rem; margin-top: 5px; }
+
+        /* ==========================================================================
+           7. CASE STUDIES ROW LAYOUT 
+           ========================================================================== */
+        .editorial-table { display: flex; flex-direction: column; }
+        .editorial-row { display: grid; grid-template-columns: 1.5fr 4fr 1.5fr; padding: 50px 0; border-top: 1px solid var(--border-thin); align-items: center; transition: var(--transition-smooth); cursor: pointer; position: relative; }
+        .editorial-row:last-child { border-bottom: 1px solid var(--border-thin); }
+        
+        .row-meta-date { font-size: 1.1rem; font-family: var(--font-sans); color: var(--text-muted); font-weight: 500; }
+        .row-body h3 { font-size: 2.2rem; font-weight: 700; color: var(--text-pure); margin-bottom: 10px; letter-spacing: -0.5px; transition: var(--transition-smooth); }
+        .row-body p { color: var(--text-muted); font-size: 1.1rem; font-weight: 300; padding-right: 60px; transition: var(--transition-smooth); }
+        
+        .row-tags-group { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .row-badge { background: var(--bg-surface); border: 1px solid var(--border-thin); padding: 8px 18px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-normal); letter-spacing: 0.5px; transition: var(--transition-smooth); }
+
+        .editorial-row:hover { padding-left: 30px; background: var(--bg-surface-elevated); border-radius: 20px; }
+        .editorial-row:hover .row-body h3 { color: var(--accent-cyan); transform: translateX(5px); }
+        .editorial-row:hover .row-badge { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+        /* ==========================================================================
+           8. EXPERTISE INTERACTIVE PILLS 
+           ========================================================================== */
+        .skills-dashboard { display: grid; grid-template-columns: 1fr 1.5fr; gap: 80px; }
+        .skills-vision h3 { font-family: var(--font-display); font-size: 2.2rem; font-weight: 400; color: var(--text-pure); margin-bottom: 25px; }
+        .skills-vision p { color: var(--text-muted); font-size: 1.1rem; font-weight: 300; }
+        
+        .skills-pool { display: flex; flex-wrap: wrap; gap: 16px; align-content: flex-start; }
+        .skill-pill { display: flex; align-items: center; gap: 12px; background: var(--bg-surface); border: 1px solid var(--border-thin); padding: 15px 28px; border-radius: 100px; font-size: 1rem; font-weight: 500; color: var(--text-normal); transition: var(--transition-smooth); cursor: default; }
+        .skill-pill i { color: var(--text-muted); font-size: 1.1rem; transition: var(--transition-smooth); }
+        .skill-pill:hover { border-color: var(--accent-cyan); color: var(--text-pure); background: var(--bg-surface-elevated); transform: translateY(-3px); }
+        .skill-pill:hover i { color: var(--accent-cyan); }
+
+        /* ==========================================================================
+           9. PREMIUM CASE STUDY & DONATION MODAL SYSTEM 
+           ========================================================================== */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-window { background: var(--bg-surface); border: 1px solid var(--border-thin); width: 90%; max-width: 950px; max-height: 85vh; border-radius: 32px; overflow-y: auto; padding: 60px; position: relative; transform: translateY(40px) scale(0.95); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        .modal-overlay.active .modal-window { transform: translateY(0) scale(1); }
+
+        .modal-close-btn { position: absolute; top: 40px; right: 40px; width: 50px; height: 50px; border-radius: 50%; background: var(--border-thin); border: 1px solid var(--border-thin); display: flex; align-items: center; justify-content: center; color: var(--text-pure); cursor: pointer; transition: var(--transition-smooth); z-index: 10; }
+        .modal-close-btn:hover { background: var(--text-pure); color: var(--bg-deep); transform: rotate(90deg); }
+
+        .modal-header { margin-bottom: 40px; border-bottom: 1px solid var(--border-thin); padding-bottom: 30px; }
+        .modal-tag { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-cyan); font-weight: 700; margin-bottom: 15px; display: block; }
+        .modal-title { font-family: var(--font-display); font-size: 3rem; font-weight: 700; color: var(--text-pure); letter-spacing: -1px; }
+        
+        .modal-meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; background: var(--bg-surface-elevated); border: 1px solid var(--border-thin); padding: 25px; border-radius: 16px; }
+        .meta-meta-item span { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 1px; display: block; margin-bottom: 5px; }
+        .meta-meta-item p { font-size: 1rem; color: var(--text-pure); font-weight: 600; }
+
+        .modal-body-content h4 { font-size: 1.35rem; font-weight: 700; color: var(--text-pure); margin: 30px 0 15px 0; display: flex; align-items: center; gap: 10px; }
+        .modal-body-content h4::before { content: ''; width: 4px; height: 18px; background: var(--accent-cyan); border-radius: 10px; display: inline-block; }
+        .modal-body-content p { color: var(--text-normal); font-size: 1.1rem; font-weight: 300; margin-bottom: 20px; text-align: justify; }
+        .modal-body-content ul { list-style: none; padding-left: 5px; }
+        .modal-body-content ul li { position: relative; padding-left: 25px; margin-bottom: 12px; color: var(--text-normal); font-size: 1.05rem; font-weight: 300; }
+        .modal-body-content ul li::before { content: '→'; position: absolute; left: 0; top: 0; color: var(--accent-cyan); font-weight: 700; }
+
+        .coffee-modal-layout { display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 40px; align-items: center; }
+        .qr-frame { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .qr-frame img { max-width: 100%; height: auto; display: block; border-radius: 10px; }
+        
+        .bank-details-box { display: flex; flex-direction: column; gap: 16px; }
+        .bank-row-info { background: var(--bg-surface-elevated); border: 1px solid var(--border-thin); padding: 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .bank-label-title { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
+        .bank-value-content { font-size: 1.1rem; font-weight: 700; color: var(--text-pure); margin-top: 4px; }
+        .copy-action-btn { background: var(--border-thin); border: 1px solid var(--border-thin); color: var(--text-pure); padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: var(--transition-smooth); }
+        .copy-action-btn:hover { background: var(--accent-cyan); color: #fff; border-color: var(--accent-cyan); }
+
+        .toast-notification { position: fixed; bottom: 40px; right: 40px; background: #10b981; color: white; padding: 16px 32px; border-radius: 12px; font-weight: 600; box-shadow: 0 20px 40px rgba(16,185,129,0.3); z-index: 3000; display: none; animation: toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* ==========================================================================
+           10. ULTRA-PREMIUM BANNER & COFFEE SYSTEM 
+           ========================================================================== */
+        .premium-cta-box { text-align: center; padding: 140px 60px; background: radial-gradient(circle at center, var(--border-glow) 0%, transparent 75%), var(--bg-surface); border: 1px solid var(--border-thin); border-radius: 40px; position: relative; overflow: hidden; margin-bottom: 100px; }
+        .premium-cta-box h2 { font-family: var(--font-display); font-size: clamp(2.5rem, 5vw, 4.2rem); font-weight: 600; color: var(--text-pure); letter-spacing: -2px; line-height: 1.1; margin-bottom: 30px; }
+        .premium-cta-box p { color: var(--text-muted); max-width: 600px; margin: 0 auto 50px auto; font-size: 1.2rem; font-weight: 300; }
+        
+        .coffee-interactive-btn { display: inline-flex; align-items: center; gap: 15px; background: linear-gradient(135deg, var(--text-pure) 0%, var(--text-normal) 100%); color: var(--bg-deep); padding: 22px 48px; border-radius: 100px; font-weight: 800; font-size: 1.05rem; letter-spacing: 0.5px; text-decoration: none; box-shadow: 0 20px 40px rgba(0,0,0,0.2); transition: var(--transition-smooth); cursor: pointer; border: none; }
+        .coffee-interactive-btn i { font-size: 1.2rem; transition: var(--transition-smooth); }
+        .coffee-interactive-btn:hover { background: var(--accent-cyan); color: #fff; transform: scale(1.03) translateY(-2px); box-shadow: 0 20px 40px var(--border-glow); }
+        .coffee-interactive-btn:hover i { transform: rotate(15deg) scale(1.1); }
+
+        /* ==========================================================================
+           11. SMART FOOTER STRUCTURE (TỰ ĐỘNG CHUYỂN MÀU THEO THEME)
+           ========================================================================== */
+        .footer-light-wrapper {
+            background-color: var(--footer-bg);
+            color: var(--footer-text-main);
+            padding: 80px 0 30px 0;
+            border-top-left-radius: 40px;
+            border-top-right-radius: 40px;
+            margin-top: 50px;
+            transition: var(--transition-smooth);
+        }
+
+        .footer-light-container { max-width: 1400px; margin: 0 auto; padding: 0 50px; }
+        .footer-light-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 60px; flex-wrap: wrap; gap: 40px; }
+        .footer-brand-light { font-size: 1.8rem; font-weight: 800; letter-spacing: 2px; color: var(--footer-text-main); transition: var(--transition-smooth); }
+        .footer-brand-light span { color: var(--accent-blue); }
+
+        .footer-light-desc { max-width: 420px; color: var(--footer-text-desc); margin-top: 15px; font-size: 1rem; font-weight: 400; line-height: 1.6; transition: var(--transition-smooth); }
+        .footer-light-links { display: flex; gap: 80px; }
+
+        .footer-col h4 { font-size: 0.9rem; font-weight: 700; color: var(--footer-text-main); margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1.5px; transition: var(--transition-smooth); }
+        .footer-col ul { list-style: none; padding: 0; }
+        .footer-col ul li { margin-bottom: 12px; }
+        .footer-col ul li a { color: var(--footer-text-desc); text-decoration: none; font-size: 0.92rem; transition: var(--transition-smooth); font-weight: 500; display: inline-block; word-break: break-all; }
+        .footer-col ul li a:hover { color: var(--accent-blue); padding-left: 5px; }
+
+        .footer-light-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 30px; border-top: 1px solid var(--footer-border); font-size: 0.9rem; color: var(--footer-text-desc); flex-wrap: wrap; gap: 20px; font-weight: 500; transition: var(--transition-smooth); }
+
+        .footer-socials { display: flex; gap: 15px; }
+        .footer-socials a { width: 45px; height: 45px; border-radius: 50%; background: var(--footer-social-bg); display: flex; align-items: center; justify-content: center; color: var(--footer-text-main); text-decoration: none; font-size: 1.1rem; transition: var(--transition-smooth); }
+        .footer-socials a:hover { background: var(--accent-blue); color: #ffffff; transform: translateY(-5px) scale(1.05); box-shadow: 0 10px 20px rgba(0, 114, 255, 0.2); }
+
+        /* ==========================================================================
+           12. RESPONSIVE DESIGN LABS
+           ========================================================================== */
+        @media (max-width: 1200px) {
+            .bento-container { grid-template-columns: repeat(2, 1fr); }
+            .bento-item.span-2 { grid-column: span 2; }
+            .hero-grid { grid-template-columns: 1fr; gap: 50px; }
+            .metrics-display { border-left: none; border-top: 1px solid var(--border-thin); padding-left: 0; padding-top: 40px; flex-direction: row; justify-content: space-between; }
+        }
+
+        @media (max-width: 900px) {
+            .container { padding: 0 30px; }
+            .nav-menu, .nav-status { display: none; }
+            .editorial-row { grid-template-columns: 1fr; gap: 15px; }
+            .row-tags-group { justify-content: flex-start; }
+            .skills-dashboard { grid-template-columns: 1fr; gap: 40px; }
+            .modal-window { padding: 40px 24px; width: 95%; }
+            .modal-meta-grid { grid-template-columns: 1fr; gap: 15px; }
+            .modal-title { font-size: 2.2rem; }
+            .coffee-modal-layout { grid-template-columns: 1fr; gap: 30px; }
+            .qr-frame { max-width: 260px; margin: 0 auto; }
+            
+            .footer-light-top { flex-direction: column; }
+            .footer-light-links { flex-wrap: wrap; gap: 40px; }
+            .footer-light-container { padding: 0 30px; }
+        }
+
+        @media (max-width: 640px) {
+            .bento-container { grid-template-columns: 1fr; }
+            .bento-item.span-2 { grid-column: span 1; }
+            .metrics-display { flex-direction: column; gap: 25px; }
+            .hero-title { font-size: 2.8rem; }
+            .premium-cta-box { padding: 80px 24px; }
+            
+            .footer-light-links { flex-direction: column; gap: 30px; }
+            .footer-light-bottom { flex-direction: column; text-align: center; }
+            .footer-light-wrapper { border-top-left-radius: 25px; border-top-right-radius: 25px; }
+            .theme-toggle-btn { bottom: 20px; left: 20px; width: 45px; height: 45px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Nút Đổi Nền Giao Diện (Theme Toggle) -->
+    <button id="themeToggle" class="theme-toggle-btn" title="Chuyển đổi Sáng/Tối">
+        <i class="fa-solid fa-moon"></i>
+    </button>
+
+    <header class="nav-header">
+        <div class="container nav-container">
+            <a href="#home" class="brand-logo">KTA<span>.TEAMS</span></a>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link active">Tổng Quan</a></li>
+                <li><a href="#leadership" class="nav-link">Năng Lực Lãnh Đạo</a></li>
+                <li><a href="#projects" class="nav-link">Dự Án Tiêu Biểu</a></li>
+                <li><a href="#skills" class="nav-link">Bộ Kỹ Năng</a></li>
+            </ul>
+            <div class="nav-status">
+                <span class="nav-status-dot"></span> Leader
+            </div>
+        </div>
+    </header>
+
+    <section id="home" class="hero-section container">
+        <span class="hero-meta">Executive Event Portfolio</span>
+        <h1 class="hero-title">Kim Tuấn An.<br><i>Kiến Tạo Trải Nghiệm<br>Sự Kiện Học Đường.</i></h1>
+        
+        <div class="hero-grid">
+            <div class="hero-vision">
+                <p>Một kịch bản hoàn hảo chỉ thực sự hồi sinh khi ánh đèn sân khấu bật sáng và toàn bộ hiện trường khớp lệnh chuẩn xác đến từng mili-giây. Với tư duy quản trị chiến lược và kỹ thuật sản xuất media tân tiến, em đứng sau để biến mọi ý tưởng thành khoảnh khắc bùng nổ tại <b>Trường THPT Chê Ghê-va-ra</b>.</p>
+                <div class="interactive-cta">
+                    <a href="#projects" class="btn-premium">Xem Các Dự Án <i class="fa-solid fa-arrow-down"></i></a>
+                    <a href="#leadership" class="btn-secondary">Hành Trình Thủ Lĩnh</a>
+                </div>
+            </div>
+            
+            <div class="metrics-display">
+                <div class="metric-block">
+                    <div class="metric-num" data-target="3.5">0<span>+</span></div>
+                    <div class="metric-label">Năm Thực Chiến</div>
+                </div>
+                <div class="metric-block">
+                    <div class="metric-num" data-target="6">0<span>+</span></div>
+                    <div class="metric-label">Số Sự Kiện Đã Làm Việc</div>
+                </div>
+                <div class="metric-block">
+                    <div class="metric-num" data-target="100">0<span>%</span></div>
+                    <div class="metric-label">Khả Năng Vận Hành</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="marquee-container">
+        <div class="marquee-wrapper">
+            <div class="marquee-item"><span class="dot">•</span> Event Director</div>
+            <div class="marquee-item"><span class="dot">•</span> Media Producer</div>
+            <div class="marquee-item"><span class="dot">•</span> Stage Manager</div>
+            <div class="marquee-item"><span class="dot">•</span> Operation Excellence</div>
+            <div class="marquee-item"><span class="dot">•</span> Event Director</div>
+            <div class="marquee-item"><span class="dot">•</span> Media Producer</div>
+            <div class="marquee-item"><span class="dot">•</span> Stage Manager</div>
+            <div class="marquee-item"><span class="dot">•</span> Operation Excellence</div>
+        </div>
+    </div>
+
+    <section id="leadership" class="section-wrapper container">
+        <div class="section-header-premium">
+            <span class="section-num">[01]</span>
+            <h2 class="section-headline">Nền Tảng Quản Trị <span>& Thủ Lĩnh Phong Trào</span></h2>
+        </div>
+
+        <div class="bento-container">
+            <div class="bento-item span-2 featured">
+                <div>
+                    <span class="bento-tag">Nơi Hoạt Động Thường Xuyên</span>
+                    <h3 class="bento-title">Trường THPT Chê Ghê-va-ra</h3>
+                    <p class="bento-desc">Phát triển tư duy quản trị chiến lược tại môi trường học đường. Trực tiếp tham gia hoạch định chiến lược, tổ chức hoạt động phong trào, sự kiện học thuật và kết nối cộng đồng học sinh năng động.</p>
+                    <ul class="bento-list">
+                        <li><i class="fa-solid fa-circle-nodes"></i> Điều phối các hoạt động sinh viên quy mô lớn tại Trường THPT Chê Ghê-va-ra.</li>
+                        <li><i class="fa-solid fa-circle-nodes"></i> Quản lý dự án, tối ưu hóa quy trình vận hành sự kiện chuyên nghiệp.</li>
+                    </ul>
+                </div>
+                <div class="bento-footer">
+                    <span class="bento-period">Vĩnh Long (Bến Tre)</span>
+                    <div class="bento-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                </div>
+            </div>
+
+            <div class="bento-item">
+                <div>
+                    <span class="bento-tag">Triết Lý Vận Hành</span>
+                    <h3 class="bento-title">Tư Duy Đạo Diễn</h3>
+                    <p class="bento-desc" style="margin-bottom: 15px;">Sự chuyên nghiệp không nằm ở quy mô, nó nằm ở việc âm thanh không lỗi một nhịp, ánh sáng chuyển màu đúng tích tắc và đội ngũ hậu cần ẩn mình hoàn hảo sau cánh gà.</p>
+                </div>
+                <div class="bento-footer">
+                    <span class="bento-period">KTA.Teams Standard</span>
+                    <div class="bento-icon"><i class="fa-solid fa-star"></i></div>
+                </div>
+            </div>
+
+            <div class="bento-item">
+                <div>
+                    <span class="bento-tag">Lãnh Đạo Tổ Chức</span>
+                    <h3 class="bento-title">Chủ Nhiệm Câu Lạc Bộ</h3>
+                    <p class="bento-desc">Đứng đầu CLB Truyền thông & Sự kiện. Tái thiết kế toàn bộ mô hình nhân sự, chuẩn hóa quy trình phân ban (Nội dung, Kỹ thuật, Hậu cần) giúp CLB tự vận hành độc lập các dự án lớn.</p>
+                </div>
+                <div class="bento-footer">
+                    <span class="bento-period">Năm Hoạt Động 2024 - 2026</span>
+                    <div class="bento-icon"><i class="fa-solid fa-crown"></i></div>
+                </div>
+            </div>
+
+            <div class="bento-item">
+                <div>
+                    <span class="bento-tag">Giai Đoạn Kiến Tạo</span>
+                    <h3 class="bento-title">Phó Chủ Nhiệm Câu Lạc Bộ</h3>
+                    <p class="bento-desc">Hỗ trợ quản lý chuyên môn kỹ thuật, trực tiếp chịu trách nhiệm thiết kế hệ thống hình ảnh và quản lý nhân sự hiện trường. Đặt viên gạch đầu tiên xây dựng quy chuẩn tác nghiệp Media.</p>
+                </div>
+                <div class="bento-footer">
+                    <span class="bento-period">Nhiệm Kỳ 2023 - 2024</span>
+                    <div class="bento-icon"><i class="fa-solid fa-user-gear"></i></div>
+                </div>
+            </div>
+
+            <div class="bento-item">
+                <div>
+                    <span class="bento-tag">Digital Integration</span>
+                    <h3 class="bento-title">Số Hóa Sự Kiện</h3>
+                    <p class="bento-desc">Ứng dụng các công cụ quản trị dữ liệu trực quan để kiểm soát danh sách đăng ký, chấm điểm tự động và tối ưu hóa luồng tương tác trên các cổng truyền thông số.</p>
+                </div>
+                <div class="bento-footer">
+                    <span class="bento-period">Hệ Thống Kỹ Thuật</span>
+                    <div class="bento-icon"><i class="fa-solid fa-bolt"></i></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="projects" class="section-wrapper container">
+        <div class="section-header-premium">
+            <span class="section-num">[02]</span>
+            <h2 class="section-headline">Hồ Sơ Dự Án Thực Chiến <span>• Bấm xem chi tiết</span></h2>
+        </div>
+
+        <div class="editorial-table">
+            <div class="editorial-row" data-project="cte">
+                <div class="row-meta-date">Mùa 2 — Mùa 4</div>
+                <div class="row-body">
+                    <h3>Challenge The Everbest</h3>
+                    <p>Đỉnh cao đấu trí học đường kế thừa format Đường Lên Đỉnh Olympia. Nơi Kim Tuấn An khẳng định năng lực tổng đạo diễn toàn phần ở Mùa 3 và dẫn dắt kỹ thuật vận hành cốt lõi qua nhiều chuỗi mùa giải.</p>
+                </div>
+                <div class="row-tags-group">
+                    <span class="row-badge">Trưởng BTC Mùa 3</span>
+                    <span class="row-badge">Format Director</span>
+                </div>
+            </div>
+
+            <div class="editorial-row" data-project="galaxuan">
+                <div class="row-meta-date">Định Kỳ Thường Niên</div>
+                <div class="row-body">
+                    <h3>Gala Xuân & Sự Kiện Trẻ</h3>
+                    <p>Chuỗi đại nhạc hội bùng nổ thu hút học sinh và sinh viên. Đột phá mô hình phát sóng trực tiếp (Livestream Multi-cam) vào giai đoạn 2025-2026 và kiểm soát hậu cần sân khấu thô vào năm 2024.</p>
+                </div>
+                <div class="row-tags-group">
+                    <span class="row-badge">Media Lead</span>
+                    <span class="row-badge">Live Producer</span>
+                </div>
+            </div>
+
+            <div class="editorial-row" data-project="hoitrai">
+                <div class="row-meta-date">Sự Kiện Trọng Điểm</div>
+                <div class="row-body">
+                    <h3>Hội Trại Truyền Thống & Thanh Niên</h3>
+                    <p>Đại sự kiện phức hợp kéo dài với mật độ hoạt động siêu cao. Đảm nhiệm khâu quản trị không gian thiết kế, điều phối trò chơi lớn và tổng duyệt kỹ thuật âm thanh đêm lửa trại bùng nổ.</p>
+                </div>
+                <div class="row-tags-group">
+                    <span class="row-badge">BTC Lĩnh Vực</span>
+                    <span class="row-badge">Logistics Management</span>
+                </div>
+            </div>
+
+            <div class="editorial-row" data-project="cbmusicnight">
+                <div class="row-meta-date">Festival</div>
+                <div class="row-body">
+                    <h3>CB Music Night</h3>
+                    <p>Chuỗi đại nhạc hội bùng nổ âm nhạc. Chào đón các bạn Tân học sinh - sinh viên tại các trường học và không gian giao lưu tuổi trẻ năng động.</p>
+                </div>
+                <div class="row-tags-group">
+                    <span class="row-badge">Media Lead</span>
+                    <span class="row-badge">Audio Engineer</span>
+                </div>
+            </div>
+
+            <div class="editorial-row" data-project="lenghe">
+                <div class="row-meta-date">Nghi Thức Định Kỳ</div>
+                <div class="row-body">
+                    <h3>Chuỗi Lễ Nghi Học Đường Trang Trọng</h3>
+                    <p>Quản trị tính trang nghiêm, đồng bộ hệ thống âm thanh, kịch bản dẫn chương trình chỉn chu (MC Script Execution) cho các đại lễ khai giảng, bế giảng và sự kiện lớn.</p>
+                </div>
+                <div class="row-tags-group">
+                    <span class="row-badge">Stage Manager</span>
+                    <span class="row-badge">Ceremony Coordinator</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="skills" class="section-wrapper container">
+        <div class="skills-dashboard">
+            <div class="skills-vision">
+                <span class="section-num">[03]</span>
+                <h3 class="glow-text">Vũ Khí Thực Chiến Của Nhà Điều Phối</h3>
+                <p>Kinh nghiệm không chỉ đo bằng thời gian mà đo bằng khối lượng công cụ bạn kiểm soát nhuần nhuyễn để phục vụ mục tiêu tối ưu hóa vận hành sự kiện tại Trường THPT Chê Ghê-va-ra.</p>
+            </div>
+            <div class="skills-pool">
+                <div class="skill-pill"><i class="fa-solid fa-sitemap"></i> Tổng Đạo Diễn Hiện Trường</div>
+                <div class="skill-pill"><i class="fa-solid fa-video"></i> Sản Xuất Livestream Multi-Cam</div>
+                <div class="skill-pill"><i class="fa-solid fa-camera"></i> Nhiếp Ảnh Sự Kiện Cinematic</div>
+                <div class="skill-pill"><i class="fa-solid fa-clock"></i> Khớp Kịch Bản Timeline</div>
+                <div class="skill-pill"><i class="fa-solid fa-users-gear"></i> Quản Trị Nhân Sự Khối Đông</div>
+                <div class="skill-pill"><i class="fa-solid fa-triangle-exclamation"></i> Xử Lý Khủng Hoảng Sân Khấu</div>
+                <div class="skill-pill"><i class="fa-solid fa-scroll"></i> Biên Tập Kịch Bản MC & Nghi Thức</div>
+                <div class="skill-pill"><i class="fa-solid fa-file-excel"></i> Số Hóa Dữ Liệu Lưu Trữ</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" style="border-bottom: none; padding-top: 100px;">
+        <div class="premium-cta-box">
+            <h2>Sẵn Sàng Kiến Tạo Khái Niệm<br><i>Sự Kiện Mới Cùng An?</i></h2>
+            <p>Nếu bạn đang tìm kiếm một người cộng sự có tư duy chỉ huy hiện trường, chịu trách nhiệm tối cao cho sự mượt mà của chương trình và có gu thẩm mỹ sắc sảo.</p>
+            <button class="coffee-interactive-btn" id="triggerCoffeeBtn">
+                Mời mình một ly cà phê <i class="fa-solid fa-coffee"></i>
+            </button>
+        </div>
+    </section>
+
+    <!-- SMART THEMED FOOTER (Tự đổi màu đối lập với nền chính) -->
+    <footer class="footer-light-wrapper">
+        <div class="footer-light-container">
+            <div class="footer-light-top">
+                <!-- Cột 1: Thông tin thương hiệu -->
+                <div>
+                    <div class="footer-brand-light">KTA<span>.TEAMS</span></div>
+                    <p class="footer-light-desc">Kiến tạo không gian trải nghiệm sự kiện học đường & sinh viên đẳng cấp, chuyên nghiệp và bùng nổ cảm xúc.</p>
+                    
+                    <div class="footer-socials" style="margin-top: 25px;">
+                        <a href="https://www.facebook.com/tuanan1001" target="_blank" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="https://www.instagram.com/tuaanan_/" target="_blank" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://www.tiktok.com/@tuananpf47" target="_blank" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                    </div>
+                </div>
+                
+                <!-- Cột 2 & 3: Menu và Liên hệ -->
+                <div class="footer-light-links">
+                    <div class="footer-col">
+                        <h4>Điều Hướng</h4>
+                        <ul>
+                            <li><a href="#home">Tổng Quan</a></li>
+                            <li><a href="#leadership">Năng Lực Lãnh Đạo</a></li>
+                            <li><a href="#projects">Hồ Sơ Dự Án</a></li>
+                            <li><a href="#skills">Bộ Kỹ Năng</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Thông Tin & Liên Hệ</h4>
+                        <ul>
+                            <li><a href="javascript:void(0)">Đại Học Trà Vinh (TVU)</a></li>
+                            <li><a href="javascript:void(0)">Trường Công Nghệ và Kỹ Thuật CET</a></li>
+                            <li><a href="mailto:112126001@st.tvu.edu.vn">112126001@st.tvu.edu.vn</a></li>
+                            <li><a href="mailto:kimtuananmc2021@gmail.com">kimtuananmc2021@gmail.com</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-light-bottom">
+                <div class="copyright-text">© 2026 Kim Tuấn An. KTA.Teams Standard.</div>
+                <div>Executive Event Director Portfolio</div>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="projectModal">
+        <div class="modal-window">
+            <div class="modal-close-btn" id="modalClose"><i class="fa-solid fa-xmark"></i></div>
+            <div id="modalDynamicContent"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="coffeeModal">
+        <div class="modal-window" style="max-width: 680px;">
+            <div class="modal-close-btn" id="coffeeClose"><i class="fa-solid fa-xmark"></i></div>
+            <div class="modal-header">
+                <span class="modal-tag">Support the Creator</span>
+                <h2 class="modal-title" style="font-size: 2.2rem;">Mời Mình Ly Cà Phê ☕</h2>
+            </div>
+            <div class="coffee-modal-layout">
+                <div class="qr-frame">
+                    <img src="https://img.vietqr.io/image/MB-864810012222-dark.png?amount=0&addInfo=Moi%20An%20Ly%20Ca%20Phe&accountName=KIM%20TUAN%20AN" alt="QR Code Payment">
+                </div>
+                <div class="bank-details-box">
+                    <p style="color: var(--text-normal); font-size: 0.95rem; font-weight: 300;">Sự đồng hành của bạn là nguồn động lực rất lớn đóng góp cho các dự án tiếp theo của KTA.Teams.</p>
+                    
+                    <div class="bank-row-info">
+                        <div>
+                            <div class="bank-label-title">Ngân Hàng</div>
+                            <div class="bank-value-content" id="bankName">MB Bank</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bank-row-info">
+                        <div>
+                            <div class="bank-label-title">Số Tài Khoản</div>
+                            <div class="bank-value-content" id="bankAccount">864810012222</div>
+                        </div>
+                        <button class="copy-action-btn" onclick="copyText('bankAccount')">Sao Chép</button>
+                    </div>
+
+                    <div class="bank-row-info">
+                        <div>
+                            <div class="bank-label-title">Chủ Tài Khoản</div>
+                            <div class="bank-value-content">KIM TUAN AN</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-notification" id="toastMessage">✓ Đã sao chép vào bộ nhớ tạm!</div>
+
+
+    <script>
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const themeIcon = themeToggleBtn.querySelector('i');
+
+        if (localStorage.getItem('savedTheme') === 'light') {
+            document.body.classList.add('light-theme');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            
+            if (document.body.classList.contains('light-theme')) {
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+                localStorage.setItem('savedTheme', 'light');
+            } else {
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+                localStorage.setItem('savedTheme', 'dark');
+            }
+        });
+
+        const projectData = {
+            cte: {
+                tag: 'Sân Chơi Trí Tuệ Cao Cấp',
+                title: 'Challenge The Everbest',
+                role: 'Trưởng Ban Tổ Chức (Mùa 3) / Thành viên lõi',
+                scope: 'Quy mô học đường & sinh viên',
+                tech: 'Hệ thống tính điểm số hóa, Kịch bản kỹ thuật điều hướng',
+                content: `
+                    <h4>Hành Trình Qua Các Mùa Giải</h4>
+                    <p>Chịu trách nhiệm tối cao toàn diện cho dự án, thiết lập bộ máy điều hành nhân sự, trực tiếp chỉ đạo Ban nội dung xây dựng kho dữ liệu câu hỏi chuẩn học thuật và là Tổng đạo diễn hiện trường chỉ huy các đêm chung kết trực tiếp.</p>
+                `
+            },
+            galaxuan: {
+                tag: 'Đại Nhạc Hội Nghệ Thuật',
+                title: 'Gala Xuân & Sự Kiện Trẻ',
+                role: 'Media Lead / Live Producer',
+                scope: 'Đại nhạc hội quy mô lớn',
+                tech: 'Hệ thống Livestream Multi-cam, Cinematic Lighting Photography',
+                content: `
+                    <h4>Nâng Tầm Công Nghệ Phát Sóng</h4>
+                    <p>Đưa mô hình sản xuất truyền hình trực tiếp vào các chương trình âm nhạc lớn, thiết lập hệ thống livestream đa góc máy (Multi-cam setup), kiểm soát chất lượng kỹ thuật đường truyền âm thanh trực tiếp.</p>
+                `
+            },
+            hoitrai: {
+                tag: 'Đại Sự Kiện Phức Hợp',
+                title: 'Hội Trại Truyền Thống & Thanh Niên',
+                role: 'Ban Tổ Chức Lĩnh Vực / Logistics Lead',
+                scope: 'Sự kiện cắm trại và hoạt động tập thể lớn',
+                tech: 'Quản trị sơ đồ không gian phức hợp',
+                content: `
+                    <h4>Bản Lĩnh Điều Phối Hiện Trường</h4>
+                    <p>Trực tiếp tham gia thiết lập bản vẽ sơ đồ bố trí không gian, điều phối kỹ thuật nguồn điện tập trung và đạo diễn kịch bản cho các chương trình lửa trại, hội trại lớn.</p>
+                `
+            },
+            cbmusicnight: {
+                tag: 'FEST Âm Nhạc Bùng Nổ',
+                title: 'CB Music Night',
+                role: 'Media Lead / Audio Engineer',
+                scope: 'Sự kiện âm nhạc chào đón Tân học sinh - sinh viên',
+                tech: 'Hệ thống âm thanh chuyên nghiệp, Quản trị Media',
+                content: `
+                    <h4>Đại Nhạc Hội Đỉnh Cao</h4>
+                    <p>Trực tiếp tham gia kiểm soát chất lượng kỹ thuật âm thanh hiện trường, đảm bảo tín hiệu và độ sắc nét của hệ thống loa đài đáp ứng tốt cho các tiết mục trình diễn đa dạng.</p>
+                `
+            },
+            lenghe: {
+                tag: 'Nghi Lễ Chính Quy',
+                title: 'Chuỗi Lễ Nghi Học Đường',
+                role: 'Stage Manager / Tổng Điều Phối Nghi Thức',
+                scope: 'Khai Giảng, Bế Giảng và Các Đại Lễ Lớn',
+                tech: 'MC Script Execution, Audio-Visual Synchronization',
+                content: `
+                    <h4>Đảm Bảo Sự Chỉn Chu Tuyệt Đối</h4>
+                    <p>Quản lý sân khấu (Stage Manager), chịu trách nhiệm khớp lệnh giữa đội ngũ nghi lễ và hệ thống âm thanh đại biểu, duy trì không khí trang nghiêm đúng tính chất đại lễ.</p>
+                `
+            }
+        };
+
+        const counters = document.querySelectorAll('.metric-num');
+        const speed = 150;
+
+        const startCounters = () => {
+            counters.forEach(counter => {
+                const animate = () => {
+                    const value = +counter.getAttribute('data-target');
+                    const data = +counter.innerText.replace(/[+%]/, '');
+                    const time = value / speed;
+                    if (data < value) {
+                        const currentNum = Math.ceil(data + time);
+                        const suffix = counter.innerText.includes('%') ? '%' : (counter.innerText.includes('+') ? '+' : '');
+                        counter.innerHTML = currentNum + `<span>${suffix}</span>`;
+                        setTimeout(animate, 10);
+                    } else {
+                        const suffix = counter.innerHTML.includes('%') ? '%' : (counter.innerHTML.includes('+') ? '+' : '');
+                        counter.innerHTML = value + `<span>${suffix}</span>`;
+                    }
+                }
+                animate();
+            });
+        }
+
+        let counted = false;
+        window.addEventListener('scroll', () => {
+            const metricsSection = document.querySelector('.metrics-display');
+            if (metricsSection) {
+                const position = metricsSection.getBoundingClientRect();
+                if (position.top < window.innerHeight && !counted) {
+                    startCounters();
+                    counted = true;
+                }
+            }
+        });
+
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const header = document.querySelector('.nav-header');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.scrollY >= (sectionTop - 200)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        const modalOverlay = document.getElementById('projectModal');
+        const modalClose = document.getElementById('modalClose');
+        const modalDynamicContent = document.getElementById('modalDynamicContent');
+        const projectRows = document.querySelectorAll('.editorial-row');
+
+        const openProjectModal = (projectId) => {
+            const data = projectData[projectId];
+            if (!data) return;
+
+            modalDynamicContent.innerHTML = `
+                <div class="modal-header">
+                    <span class="modal-tag">${data.tag}</span>
+                    <h2 class="modal-title">${data.title}</h2>
+                </div>
+                <div class="modal-meta-grid">
+                    <div class="meta-meta-item">
+                        <span>Vai trò cốt lõi</span>
+                        <p>${data.role}</p>
+                    </div>
+                    <div class="meta-meta-item">
+                        <span>Phạm vi & Quy mô</span>
+                        <p>${data.scope}</p>
+                    </div>
+                    <div class="meta-meta-item">
+                        <span>Công nghệ ứng dụng</span>
+                        <p>${data.tech}</p>
+                    </div>
+                </div>
+                <div class="modal-body-content">
+                    ${data.content}
+                </div>
+            `;
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeProjectModal = () => {
+            modalOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        projectRows.forEach(row => {
+            row.addEventListener('click', () => {
+                const projectId = row.getAttribute('data-project');
+                openProjectModal(projectId);
+            });
+        });
+
+        modalClose.addEventListener('click', closeProjectModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeProjectModal();
+        });
+
+        const coffeeModal = document.getElementById('coffeeModal');
+        const triggerCoffeeBtn = document.getElementById('triggerCoffeeBtn');
+        const coffeeClose = document.getElementById('coffeeClose');
+
+        triggerCoffeeBtn.addEventListener('click', () => {
+            coffeeModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        const closeCoffeeModal = () => {
+            coffeeModal.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        coffeeClose.addEventListener('click', closeCoffeeModal);
+        coffeeModal.addEventListener('click', (e) => {
+            if (e.target === coffeeModal) closeCoffeeModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeProjectModal();
+                closeCoffeeModal();
+            }
+        });
+
+        function copyText(elementId) {
+            const textToCopy = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const toast = document.getElementById('toastMessage');
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 2500);
+            }).catch(err => {
+                console.error('Không thể sao chép văn bản: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
+
+        function updateVUMeter() {
+            requestAnimationFrame(updateVUMeter);
+            const dataArray = new Uint8Array(analyserL.frequencyBinCount); analyserL.getByteFrequencyData(dataArray);
+            let sum = 0; for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+            let activeLeds = Math.round(((sum / dataArray.length) / 120) * 16); 
+            leds.forEach((led, index) => {
+                if (index < activeLeds) {
+                    if (index < 10) { led.style.background = '#00FF88'; led.style.boxShadow = '0 0 6px #00FF88'; }
+                    else if (index < 13) { led.style.background = '#D4AF37'; led.style.boxShadow = '0 0 6px #D4AF37'; }
+                    else { led.style.background = '#FF3366'; led.style.boxShadow = '0 0 6px #FF3366'; }
+                } else { led.style.background = '#222'; led.style.boxShadow = 'none'; }
+            });
+        }
+
+        function connectFX(node) { node.connect(audioCtx.destination); if(destStreamNode) node.connect(destStreamNode); }
+        
+        function playApplauseFX() { 
+            initAudioContext(); 
+            const bufferSize = audioCtx.sampleRate * 2.0; const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate); const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.5)); const noise = audioCtx.createBufferSource(); noise.buffer = buffer; const filter = audioCtx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1000; filter.Q.value = 1.0; const gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2.0); noise.connect(filter); filter.connect(gain); connectFX(gain); noise.start(); 
+            appendLog("Phát FX: Tiếng vỗ tay (Applause)");
+        }
+        function playCrowdLaughFX() { 
+            initAudioContext(); 
+            for(let k=0; k<5; k++) setTimeout(() => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(300 + Math.random()*200, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(250 + Math.random()*150, audioCtx.currentTime + 0.3); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3); osc.connect(gain); connectFX(gain); osc.start(); osc.stop(audioCtx.currentTime + 0.3); }, k * 80); 
+            appendLog("Phát FX: Khán giả cười (Laugh)");
+        }
+        function playAirHornFX() { 
+            initAudioContext(); 
+            const osc1 = audioCtx.createOscillator(); const osc2 = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc1.type = 'sawtooth'; osc2.type = 'square'; osc1.frequency.value = 370; osc2.frequency.value = 466; gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6); osc1.connect(gain); osc2.connect(gain); connectFX(gain); osc1.start(); osc2.start(); osc1.stop(audioCtx.currentTime + 0.6); osc2.stop(audioCtx.currentTime + 0.6); 
+            appendLog("Phát FX: Kèn Air Horn");
+        }
+        function playDrumRollFX() { 
+            initAudioContext(); 
+            for(let i=0; i<15; i++) setTimeout(() => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(100, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.08); gain.gain.setValueAtTime(0.4, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08); osc.connect(gain); connectFX(gain); osc.start(); osc.stop(audioCtx.currentTime + 0.08); }, i * 60); 
+            appendLog("Phát FX: Trống hồi hộp (Drum Roll)");
+        }
+
+        function toggleRecording() {
+            initAudioContext(); const btnRec = document.getElementById('btn-rec');
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                recordedChunks = []; mediaRecorder = new MediaRecorder(destStreamNode.stream);
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const url = URL.createObjectURL(new Blob(recordedChunks, { type: 'audio/webm' }));
+                    const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = `SoundBoard_Mix_${Date.now()}.webm`; document.body.appendChild(a); a.click(); document.body.removeChild(a); window.URL.revokeObjectURL(url);
+                    appendLog("Đã hoàn tất ghi âm session và tải xuống file mix.");
+                };
+                mediaRecorder.start(); btnRec.classList.add('recording'); btnRec.innerText = "■ STOP REC";
+                appendLog("Bắt đầu ghi âm phiên trộn nhạc (REC)...");
+            } else { 
+                mediaRecorder.stop(); btnRec.classList.remove('recording'); btnRec.innerText = "⏺ REC"; 
+                appendLog("Đã dừng ghi âm.");
+            }
+        }
+
+        function changePadColor(id, color) { 
+            channels[id].color = color; 
+            document.getElementById(`pad-${id}`).style.setProperty('--pad-color', color); 
+            document.getElementById(`color-${id}`).value = color; 
+            appendLog(`Đổi màu Pad ${id} thành ${color}`);
+        }
+        function toggleCue(id) {
+            channels[id].isCueing = !channels[id].isCueing;
+            document.getElementById(`btn-cue-${id}`).classList.toggle('active-cue', channels[id].isCueing);
+            showToast(`Track ${id}: Cue (Nghe trước) ${channels[id].isCueing ? 'Bật' : 'Tắt'}`, "info");
+            appendLog(`Track ${id}: Cue / PFL ${channels[id].isCueing ? 'BẬT' : 'TẮT'}`);
+        }
+        function toggleMute(id) { 
+            channels[id].isMuted = !channels[id].isMuted; 
+            document.getElementById(`btn-mute-${id}`).classList.toggle('active-mute', channels[id].isMuted); 
+            document.getElementById(`pad-${id}`).classList.toggle('muted', channels[id].isMuted); 
+            applyChannelVolumes(); 
+            appendLog(`Track ${id}: Mute ${channels[id].isMuted ? 'BẬT' : 'TẮT'}`);
+        }
+        function toggleSolo(id) { 
+            channels[id].isSoloed = !channels[id].isSoloed; 
+            document.getElementById(`btn-solo-${id}`).classList.toggle('active-solo', channels[id].isSoloed); 
+            document.getElementById(`pad-${id}`).classList.toggle('soloed', channels[id].isSoloed); 
+            applyChannelVolumes(); 
+            appendLog(`Track ${id}: Solo ${channels[id].isSoloed ? 'BẬT' : 'TẮT'}`);
+        }
+        function toggleLoop(id) { 
+            channels[id].isLooping = !channels[id].isLooping; 
+            channels[id].audio.loop = channels[id].isLooping; 
+            document.getElementById(`btn-loop-${id}`).classList.toggle('active-loop', channels[id].isLooping); 
+            appendLog(`Track ${id}: Lặp lại (Loop) ${channels[id].isLooping ? 'BẬT' : 'TẮT'}`);
+        }
+        function toggleAutoNext(id) { 
+            channels[id].isAutoNext = !channels[id].isAutoNext; 
+            document.getElementById(`btn-autonext-${id}`).classList.toggle('active-autonext', channels[id].isAutoNext); 
+            showToast(`Track ${id}: Auto-Next ${channels[id].isAutoNext ? 'Bật' : 'Tắt'}`, "info");
+            appendLog(`Track ${id}: Auto-Next ${channels[id].isAutoNext ? 'BẬT' : 'TẮT'}`);
+        }
+
+        function applyChannelVolumes() {
+            let anySolo = Object.values(channels).some(c => c.isSoloed);
+            for(let i=1; i<=MAX_CHANNELS; i++) {
+                const ch = channels[i]; let finalVol = ch.targetVolume * masterVolume;
+                if (ch.isMuted || (anySolo && !ch.isSoloed)) finalVol = 0;
+                if (ch.gainNode && !ch.fadeInterval) ch.gainNode.gain.value = finalVol; else if (!ch.gainNode) ch.audio.volume = finalVol;
+            }
+        }
+
+        function updateUIPlaying(id, isPlaying) {
+            const pad = document.getElementById(`pad-${id}`); const btnPlay = document.getElementById(`btn-play-${id}`);
+            channels[id].isPlaying = isPlaying;
+            if (isPlaying) { pad.classList.add('active'); btnPlay.classList.add('is-playing'); btnPlay.innerHTML = '⏸ PAUSE'; }
+            else { pad.classList.remove('active'); btnPlay.classList.remove('is-playing'); btnPlay.innerHTML = '▶ PLAY'; }
+            updateTracklist();
+        }
+
+        function handlePlayPause(id) {
+            initAudioContext(); const ch = channels[id];
+            if (!ch.audio.src) return showToast(`Chưa nạp audio cho TRACK ${id}!`, "error");
+            clearInterval(ch.fadeInterval); ch.fadeInterval = null;
+            if (ch.audio.paused) {
+                if(document.getElementById('toggle-exclusive').checked) {
+                    for(let i=1; i<=MAX_CHANNELS; i++) if(i !== id && channels[i].isPlaying) executeFade(i, 'out', true);
+                }
+                const fadeSec = parseFloat(document.getElementById('input-fade-sec').value) || 2;
+                if (fadeSec > 0) {
+                    if(ch.gainNode) ch.gainNode.gain.value = 0; else ch.audio.volume = 0;
+                    ch.audio.play(); executeFade(id, 'in');
+                } else { applyChannelVolumes(); ch.audio.play(); }
+                updateUIPlaying(id, true);
+                appendLog(`Phát nhạc (PLAY): Track ${id} (${ch.name})`);
+            } else {
+                const fadeSec = parseFloat(document.getElementById('input-fade-sec').value) || 2;
+                if (fadeSec > 0) executeFade(id, 'out', false);
+                else ch.audio.pause();
+                updateUIPlaying(id, false);
+                appendLog(`Tạm dừng (PAUSE): Track ${id} (${ch.name})`);
+            }
+        }
+
+        function handleStop(id) {
+            const ch = channels[id]; if (!ch.audio.src || (ch.audio.paused && ch.audio.currentTime === 0)) return;
+            clearInterval(ch.fadeInterval); ch.fadeInterval = null;
+            const fadeSec = parseFloat(document.getElementById('input-fade-sec').value) || 2;
+            if (fadeSec > 0 && !ch.audio.paused) { updateUIPlaying(id, false); executeFade(id, 'out', true); } else forceStopUI(id);
+            appendLog(`Dừng phát (STOP): Track ${id} (${ch.name})`);
+        }
+
+        function forceStopUI(id) {
+            const ch = channels[id]; ch.audio.pause(); ch.audio.currentTime = 0; updateUIPlaying(id, false);
+            document.getElementById(`progress-${id}`).style.width = '0%'; document.getElementById(`time-current-${id}`).innerText = '00:00 (0%)';
+            document.getElementById(`pad-${id}`).classList.remove('warning-10', 'warning-20', 'warning-40');
+        }
+
+        function executeFade(id, action, isHardStop = false) {
+            const ch = channels[id]; if (!ch.audio.src) return; clearInterval(ch.fadeInterval);
+            let anySolo = Object.values(channels).some(c => c.isSoloed);
+            let baseVol = ch.targetVolume * masterVolume; if (ch.isMuted || (anySolo && !ch.isSoloed)) baseVol = 0;
+            const fadeSec = parseFloat(document.getElementById('input-fade-sec').value) || 2;
+            const fadeDuration = fadeSec * 1000;
+            const steps = 30; const intervalTime = fadeDuration / steps;
+            if (action === 'in' && ch.audio.paused) { initAudioContext(); if(ch.gainNode) ch.gainNode.gain.value = 0; ch.audio.play(); updateUIPlaying(id, true); }
+            let currentVol = ch.gainNode ? ch.gainNode.gain.value : ch.audio.volume;
+            const targetVol = action === 'in' ? baseVol : 0; const stepVol = (targetVol - currentVol) / steps;
+            
+            appendLog(`Thực hiện Fade ${action.toUpperCase()} cho Track ${id} trong ${fadeSec}s.`);
+
+            ch.fadeInterval = setInterval(() => {
+                currentVol += stepVol;
+                if ((action === 'in' && currentVol >= targetVol) || (action === 'out' && currentVol <= targetVol)) {
+                    let finalVal = Math.max(0, Math.min(2, targetVol));
+                    if(ch.gainNode) ch.gainNode.gain.value = finalVal; else ch.audio.volume = finalVal;
+                    clearInterval(ch.fadeInterval); ch.fadeInterval = null;
+                    if (action === 'out') { if (isHardStop) forceStopUI(id); else ch.audio.pause(); }
+                } else {
+                    let finalVal = Math.max(0, Math.min(2, currentVol));
+                    if(ch.gainNode) ch.gainNode.gain.value = finalVal; else ch.audio.volume = finalVal;
+                }
+            }, intervalTime);
+        }
+
+        function saveProject() {
+            const config = { deckCount: activeChannels, fadeSec: document.getElementById('input-fade-sec').value, exclusive: document.getElementById('toggle-exclusive').checked, lock: document.getElementById('toggle-lock').checked, masterVol: masterVolume, channelsData: {} };
+            for(let i=1; i<=MAX_CHANNELS; i++) {
+                const isUsed = document.getElementById(`pad-${i}`).classList.contains('used-track');
+                config.channelsData[i] = { name: channels[i].name, volume: channels[i].targetVolume, isLooping: channels[i].isLooping, isAutoNext: channels[i].isAutoNext, isCueing: channels[i].isCueing, color: channels[i].color, hotkey: channels[i].hotkey, used: isUsed };
+            }
+            localStorage.setItem('SoundBoardLuxuryStudio', JSON.stringify(config));
+            showToast("Đã lưu cấu hình dự án!", "success");
+            appendLog("Đã lưu cấu hình hệ thống & trạng thái các Deck vào bộ nhớ.");
+        }
+
+        function loadProject() {
+            const saved = localStorage.getItem('SoundBoardLuxuryStudio');
+            if(saved) {
+                try {
+                    const config = JSON.parse(saved);
+                    if(config.fadeSec) document.getElementById('input-fade-sec').value = config.fadeSec;
+                    document.getElementById('toggle-exclusive').checked = config.exclusive; document.getElementById('toggle-lock').checked = config.lock;
+                    masterVolume = config.masterVol; document.getElementById('master-volume').value = masterVolume; document.getElementById('master-vol-val').innerText = Math.round(masterVolume * 100) + '%';
+                    if(config.deckCount) { document.getElementById('deck-count').value = config.deckCount; changeDeckCount(config.deckCount); }
+                    for(let i=1; i<=MAX_CHANNELS; i++) {
+                        if(config.channelsData[i]) {
+                            const data = config.channelsData[i]; channels[i].name = data.name; document.getElementById(`title-${i}`).innerText = data.name;
+                            channels[i].targetVolume = data.volume; document.getElementById(`vol-${i}`).value = data.volume; document.getElementById(`vol-val-${i}`).innerText = Math.round(data.volume * 100) + '%';
+                            channels[i].isLooping = data.isLooping; channels[i].audio.loop = data.isLooping; if(data.isLooping) document.getElementById(`btn-loop-${i}`).classList.add('active-loop');
+                            
+                            channels[i].isAutoNext = data.isAutoNext;
+                            const btnAutoNextEl = document.getElementById(`btn-autonext-${i}`);
+                            if(data.isAutoNext) btnAutoNextEl.classList.add('active-autonext');
+                            else btnAutoNextEl.classList.remove('active-autonext');
+
+                            if(data.isCueing) { channels[i].isCueing = true; document.getElementById(`btn-cue-${i}`).classList.add('active-cue'); }
+                            if(data.color) changePadColor(i, data.color); if(data.hotkey) { channels[i].hotkey = data.hotkey; document.getElementById(`badge-key-${i}`).innerText = data.hotkey; }
+                            if(data.used) { document.getElementById(`pad-${i}`).classList.add('used-track'); }
+                        }
+                    }
+                    updateTracklist();
+                    appendLog("Đã tải lại cấu hình dự án đã lưu trước đó.");
+                } catch(e) {}
+            }
+        }
+        window.addEventListener('DOMContentLoaded', loadProject);
+        document.addEventListener('keydown', (e) => { if (e.target.tagName === 'INPUT') return; const pressedKey = e.key.toUpperCase(); for(let i=1; i<=activeChannels; i++) if(channels[i].hotkey === pressedKey) { handlePlayPause(i); break; } });
+    </script>
+</body>
+</html>
